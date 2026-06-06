@@ -493,23 +493,16 @@ export default function TheCloud({initialData={},onDataChange}){
           const cops=strains.flatMap(s=>s.cops.filter(c=>r.copIds.includes(c.id)).map(c=>({...c,strain:s})));
           const copped=coppedEntries.filter(c=>r.coppedIds?.includes(c.id));
           const total=cops.length+copped.length;
-          const isEmpty=total===0;
-          return(<div key={r.id} style={{background:P.bg,borderRadius:10,padding:14,marginBottom:8,border:`0.5px solid ${P.border}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:total>0?6:0}}>
-              <button onClick={()=>{setActiveReupId(r.id);setView("cop");}} style={{background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",fontFamily:"inherit",flex:1}}>
-                <span style={{fontSize:14,fontWeight:500,color:P.text}}>re-up · {r.date}</span>
-                <span style={{fontSize:11,color:P.textMuted,marginLeft:8}}>{isEmpty?"empty":total+" strain"+(total!==1?"s":"")}</span>
-              </button>
-              {isEmpty&&<button onClick={()=>setConfirmDelete(confirmDelete==="reup-"+r.id?null:"reup-"+r.id)} style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`0.5px solid ${confirmDelete==="reup-"+r.id?P.red:P.border}`,background:confirmDelete==="reup-"+r.id?P.redLight:"transparent",color:confirmDelete==="reup-"+r.id?P.red:P.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                {confirmDelete==="reup-"+r.id?"tap again to delete":"delete"}
-              </button>}
-              {confirmDelete==="reup-"+r.id&&<button onClick={()=>{setReups(reups.filter(x=>x.id!==r.id));setConfirmDelete(null);}} style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:"none",background:P.red,color:P.cream,cursor:"pointer",fontFamily:"inherit",marginLeft:6}}>confirm</button>}
+          return(<button key={r.id} onClick={()=>{setActiveReupId(r.id);setView("cop");}} style={{display:"block",width:"100%",textAlign:"left",background:P.bg,borderRadius:10,padding:14,marginBottom:8,border:`0.5px solid ${P.border}`,cursor:"pointer",fontFamily:"inherit"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:14,fontWeight:500,color:P.text}}>re-up · {r.date}</span>
+              <span style={{fontSize:11,color:P.textMuted}}>{total} strain{total!==1?"s":""}</span>
             </div>
             <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-              {cops.map(c=><button key={c.id} onClick={()=>{setActiveReupId(r.id);setView("cop");}} style={{fontSize:10,background:P.surface,color:P.textWarm,padding:"2px 6px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit"}}>{c.strain.name}</button>)}
-              {copped.map(c=><button key={c.id} onClick={()=>{setActiveReupId(r.id);setView("cop");}} style={{fontSize:10,background:P.terracottaLight,color:P.terracotta,padding:"2px 6px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit"}}>{c.strainName}</button>)}
+              {cops.map(c=><span key={c.id} style={{fontSize:10,background:P.surface,color:P.textWarm,padding:"2px 6px",borderRadius:6}}>{c.strain.name}</span>)}
+              {copped.map(c=><span key={c.id} style={{fontSize:10,background:P.terracottaLight,color:P.terracotta,padding:"2px 6px",borderRadius:6}}>{c.strainName}</span>)}
             </div>
-          </div>);
+          </button>);
         })}
       </>}
       {reups.filter(r=>!r.closed).length<2&&<button onClick={()=>{
@@ -536,7 +529,7 @@ export default function TheCloud({initialData={},onDataChange}){
       <label style={{fontSize:12,fontWeight:500,color:P.textMuted,display:"block",marginBottom:6}}>source</label>
       <ToggleGroup options={["TL","Dispensary"]} value={cop.source} onChange={v=>setCop({...cop,source:v,container:"",brand:""})}/>
       {cop.source==="Dispensary"&&<><SubToggle options={["Bag","Jar"]} value={cop.container} onChange={v=>setCop({...cop,container:v})} color={P.terracotta} label="packaging:"/>
-        <SubToggle options={["Indoor grown","Outdoor grown"]} value={cop.growType} onChange={v=>setCop({...cop,growType:v})} color={P.sage} label="grow type:"/>
+        <SubToggle options={["Indoor grown","Greenhouse grown","Outdoor grown"]} value={cop.growType} onChange={v=>setCop({...cop,growType:v})} color={P.sage} label="grow type:"/>
         <div style={{marginTop:10}}><label style={{fontSize:12,fontWeight:500,color:P.textMuted,display:"block",marginBottom:6}}>brand <span style={{fontWeight:400,fontStyle:"italic"}}>(optional)</span></label>
         <input value={cop.brand} onChange={e=>setCop({...cop,brand:e.target.value})} placeholder="e.g. cookies, jungle boys..." style={{width:"100%",boxSizing:"border-box",background:P.bg,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none"}}/></div>
       </>}<div style={{marginBottom:20}}/>
@@ -800,16 +793,16 @@ export default function TheCloud({initialData={},onDataChange}){
   // ═══ MAIN VIEW ═══
   return(<div style={{background:P.bg,minHeight:"100vh",fontFamily:"'DM Sans','Nunito',sans-serif"}}><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet"/><div style={{maxWidth:480,margin:"0 auto",padding:"20px 20px 100px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
-      <div><h1 style={{fontSize:28,fontWeight:500,margin:0,color:P.text,fontFamily:"'Playfair Display',serif"}}>The Cloud</h1><p style={{fontSize:13,color:P.textMuted,margin:"4px 0 0"}}>your terpene journal</p></div>
+      <div><h1 style={{fontSize:28,fontWeight:500,margin:0,color:P.text,fontFamily:"'Playfair Display',serif"}}>c<span style={{textTransform:"uppercase",letterSpacing:2}}>loud</span></h1><p style={{fontSize:13,color:P.textMuted,margin:"4px 0 0"}}>your terpene journal</p></div>
       <button onClick={()=>setShowGuide(!showGuide)} style={{background:showGuide?P.text:"transparent",color:showGuide?P.cream:P.textMuted,border:showGuide?"none":`0.5px solid ${P.border}`,width:32,height:32,borderRadius:"50%",cursor:"pointer",fontSize:14,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>?</button>
     </div>
 
     {showGuide&&<div style={{background:P.card,borderRadius:12,padding:20,border:`0.5px solid ${P.border}`,marginBottom:20}}>
-      <p style={{fontSize:15,fontWeight:500,color:P.text,margin:"0 0 16px",fontFamily:"'Playfair Display',serif"}}>how to use The Cloud</p>
+      <p style={{fontSize:15,fontWeight:500,color:P.text,margin:"0 0 16px",fontFamily:"'Playfair Display',serif"}}>how to use cLOUD</p>
 
       <div style={{marginBottom:16}}>
         <p style={{fontSize:13,fontWeight:500,color:P.terracotta,margin:"0 0 4px"}}>📦 re-ups & copping</p>
-        <p style={{fontSize:12,color:P.textMuted,margin:0,lineHeight:1.5}}>tap + to start. pick or create a re-up (your haul — max 2 open at a time), then log each strain you bought. enter the name, type, source, terpenes, and any first impressions. all your copped strains land in "ready to try." dates are based on when you log, so cop right when you buy.</p>
+        <p style={{fontSize:12,color:P.textMuted,margin:0,lineHeight:1.5}}>tap + to start. pick or create a re-up (your haul — max 2 open at a time), then log each strain you bought. enter the name, type, source, terpenes, and any first impressions. for dispensary cops, you can also log packaging (bag or jar), brand, and grow type (indoor, greenhouse, or outdoor). all your copped strains land in "ready to try." dates are based on when you log, so cop right when you buy.</p>
       </div>
 
       <div style={{marginBottom:16}}>
@@ -1054,7 +1047,7 @@ export default function TheCloud({initialData={},onDataChange}){
       </div>}
 
       {libSubTab==="legacy"&&<div>
-        <p style={{fontSize:12,color:P.textMuted,margin:"0 0 16px"}}>{legacyStrains.length} strain{legacyStrains.length!==1?"s":""} from before The Cloud</p>
+        <p style={{fontSize:12,color:P.textMuted,margin:"0 0 16px"}}>{legacyStrains.length} strain{legacyStrains.length!==1?"s":""} from before cLOUD</p>
 
         {/* Never again */}
         {legacyStrains.filter(l=>l.copAgain==="Never again").length>0&&<>
@@ -1240,9 +1233,10 @@ export default function TheCloud({initialData={},onDataChange}){
 
           {allSessionCops.some(c=>c.growType)&&<div style={{background:P.card,borderRadius:12,padding:16,border:`0.5px solid ${P.border}`,marginTop:16}}>
             <p style={{fontSize:14,fontWeight:500,color:P.text,margin:"0 0 4px"}}>🌱 grow type preference</p>
-            <p style={{fontSize:11,color:P.textMuted,margin:"0 0 14px"}}>indoor grown vs outdoor grown — based on your ratings + cop-again</p>
+            <p style={{fontSize:11,color:P.textMuted,margin:"0 0 14px"}}>based on your ratings + cop-again</p>
             {(()=>{
               const ig=allSessionCops.filter(c=>c.growType==="Indoor grown");
+              const gh=allSessionCops.filter(c=>c.growType==="Greenhouse grown");
               const og=allSessionCops.filter(c=>c.growType==="Outdoor grown");
               const stats=arr=>({
                 count:arr.length,
@@ -1251,37 +1245,36 @@ export default function TheCloud({initialData={},onDataChange}){
                 maybeCount:arr.filter(c=>c.session.copAgain==="Maybe").length,
                 noCount:arr.filter(c=>c.session.copAgain==="No"||c.session.copAgain==="Never again").length,
               });
-              const igS=stats(ig);const ogS=stats(og);
-              const winner=igS.avg&&ogS.avg?(igS.avg>ogS.avg?"indoor grown":ogS.avg>igS.avg?"outdoor grown":null):null;
-              const renderCard=(label,s,color)=>s.count===0?<div style={{flex:1,background:P.bg,borderRadius:10,padding:14,textAlign:"center",border:`0.5px solid ${P.border}`}}><p style={{fontSize:13,color:P.textMuted,margin:0}}>{label}</p><p style={{fontSize:11,color:P.textMuted,margin:"6px 0 0"}}>no data yet</p></div>:(<div style={{flex:1,background:P.bg,borderRadius:10,padding:14,border:`0.5px solid ${P.border}`}}>
+              const igS=stats(ig);const ghS=stats(gh);const ogS=stats(og);
+              const allAvgs=[igS.avg,ghS.avg,ogS.avg].filter(Boolean);
+              const maxAvg=allAvgs.length?Math.max(...allAvgs):null;
+              const winner=(s,label)=>s.avg&&s.avg===maxAvg&&allAvgs.filter(a=>a===maxAvg).length===1?label:null;
+              const renderCard=(label,s,color)=>s.count===0?null:(<div style={{flex:1,background:P.bg,borderRadius:10,padding:12,border:`0.5px solid ${P.border}`,minWidth:0}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <p style={{fontSize:12,fontWeight:500,color:P.text,margin:0}}>{label}</p>
-                  {winner===label.toLowerCase()&&<span style={{fontSize:9,background:P.sage,color:P.cream,padding:"1px 6px",borderRadius:6}}>preferred</span>}
+                  <p style={{fontSize:11,fontWeight:500,color:P.text,margin:0}}>{label}</p>
+                  {winner(s,label)&&<span style={{fontSize:9,background:P.sage,color:P.cream,padding:"1px 6px",borderRadius:6}}>top</span>}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
-                  <div style={{display:"flex",gap:1}}>{[1,2,3,4,5].map(n=><Leaf key={n} filled={n<=Math.round(s.avg)} color={color} size={14}/>)}</div>
-                  <span style={{fontSize:14,fontWeight:500,color}}>{s.avg}</span>
+                <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
+                  <span style={{fontSize:16,fontWeight:500,color}}>{s.avg}</span>
                   <span style={{fontSize:10,color:P.textMuted}}>avg</span>
                 </div>
-                <div style={{display:"flex",gap:4}}>
-                  <div style={{flex:1,background:"#EDF2E8",borderRadius:6,padding:"4px 0",textAlign:"center"}}>
-                    <p style={{fontSize:13,fontWeight:500,color:P.sage,margin:0}}>{s.yesCount}</p>
+                <div style={{display:"flex",gap:3}}>
+                  <div style={{flex:1,background:"#EDF2E8",borderRadius:5,padding:"3px 0",textAlign:"center"}}>
+                    <p style={{fontSize:12,fontWeight:500,color:P.sage,margin:0}}>{s.yesCount}</p>
                     <p style={{fontSize:9,color:P.textMuted,margin:"1px 0 0"}}>yes</p>
                   </div>
-                  <div style={{flex:1,background:P.terracottaLight,borderRadius:6,padding:"4px 0",textAlign:"center"}}>
-                    <p style={{fontSize:13,fontWeight:500,color:P.terracotta,margin:0}}>{s.maybeCount}</p>
+                  <div style={{flex:1,background:P.terracottaLight,borderRadius:5,padding:"3px 0",textAlign:"center"}}>
+                    <p style={{fontSize:12,fontWeight:500,color:P.terracotta,margin:0}}>{s.maybeCount}</p>
                     <p style={{fontSize:9,color:P.textMuted,margin:"1px 0 0"}}>maybe</p>
                   </div>
-                  <div style={{flex:1,background:P.surface,borderRadius:6,padding:"4px 0",textAlign:"center"}}>
-                    <p style={{fontSize:13,fontWeight:500,color:P.textMuted,margin:0}}>{s.noCount}</p>
+                  <div style={{flex:1,background:P.surface,borderRadius:5,padding:"3px 0",textAlign:"center"}}>
+                    <p style={{fontSize:12,fontWeight:500,color:P.textMuted,margin:0}}>{s.noCount}</p>
                     <p style={{fontSize:9,color:P.textMuted,margin:"1px 0 0"}}>no</p>
                   </div>
                 </div>
               </div>);
-              return(<div style={{display:"flex",gap:10}}>
-                {renderCard("indoor grown",igS,P.sage)}
-                {renderCard("outdoor grown",ogS,P.onHand)}
-              </div>);
+              const cards=[renderCard("indoor",igS,P.sage),renderCard("greenhouse",ghS,"#8A9A3A"),renderCard("outdoor",ogS,P.onHand)].filter(Boolean);
+              return(<div style={{display:"flex",gap:8}}>{cards}</div>);
             })()}
           </div>}
         </div>}
