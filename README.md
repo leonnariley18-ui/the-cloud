@@ -13,7 +13,7 @@ cLOUD is a private journal for tracking every strain you smoke. Log what you cop
 ### core features
 
 - **re-ups** — group strains by haul (max 2 open at a time). auto-closes when every strain in the batch is finished.
-- **cop flow** — log strain name, type, source, terpenes, grow type, first impression. supports TL, dispensary (bag or jar), and street sources.
+- **cop flow** — log strain name, type, source, terpenes, grow type, first impression. supports TL, dispensary (bag or jar with indoor / greenhouse / outdoor grown), and street sources.
 - **first session** — rate 1–5 leaves, set body + mind spectrums (7-notch), tag taste + vibes, toggle bedtime, write session notes.
 - **on hand** — strains move here after first session. add notes, log experiences, mix with other on-hand strains.
 - **experiences** — capture notable smokes with setting (indoor/outdoor), bedtime toggle, vibe tags, and notes. dual-stored when mixed.
@@ -36,7 +36,7 @@ cLOUD is a private journal for tracking every strain you smoke. Log what you cop
 
 - **terpenes** — avg rating + cop-again % per terpene, toggleable between pure sessions and mixes
 - **types** — indica / sativa / hybrid breakdown with ratings
-- **brands** — avg rating, cop-again breakdown, and 🌱 grow type preference (indoor vs outdoor)
+- **brands** — avg rating, cop-again breakdown, and 🌱 grow type preference (indoor vs greenhouse vs outdoor)
 - **🌿 outdoor** — dedicated outdoor session report
 - **🌙 bedtime** — best bedtime strains, terpene affinity, and a 😬 wrong call list (marked bedtime but hit active or wired)
 
@@ -175,3 +175,7 @@ finishedReups[]            (closed hauls — max 5 shown on home)
 2. PIN is hashed with SHA-256 + a salt before storing in Supabase
 3. Session stored in `sessionStorage` — closing the tab requires re-entry
 4. Data auto-saves to Supabase 2 seconds after any change (debounced)
+
+---
+
+*built in one conversation. logged with love.*
