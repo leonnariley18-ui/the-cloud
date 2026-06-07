@@ -218,7 +218,7 @@ export default function TheCloud({initialData={},onDataChange}){
   const activeTotal=insightMode==="pure"?allSessionCops.length:allMixes.length;
 
   // Outdoor data
-  const outdoorSessions=allSessionCops.filter(c=>c.session.setting==="outdoor");
+  const outdoorSessions=allSessionCops.filter(c=>c.session.setting==="outdoor"||strains.find(s=>s.id===c.strainId)?.intent==="adventure");
   const indoorSessions=allSessionCops.filter(c=>c.session.setting==="indoor");
   const outdoorAvg=outdoorSessions.length?+(outdoorSessions.reduce((a,c)=>a+c.session.rating,0)/outdoorSessions.length).toFixed(1):0;
   const indoorAvg=indoorSessions.length?+(indoorSessions.reduce((a,c)=>a+c.session.rating,0)/indoorSessions.length).toFixed(1):0;
@@ -318,6 +318,28 @@ export default function TheCloud({initialData={},onDataChange}){
     const newVal=!detailStrain.unknownLineage;
     const updated=strains.map(s=>s.id!==detailStrain.id?s:{...s,unknownLineage:newVal});
     setStrains(updated);setDetailStrain({...detailStrain,unknownLineage:newVal});
+  };
+
+  const setStrainIntent=(intent)=>{
+    if(!detailStrain||detailStrain.intent)return;
+    const updated=strains.map(s=>s.id!==detailStrain.id?s:{...s,intent});
+    setStrains(updated);setDetailStrain({...detailStrain,intent});
+  };
+
+  const setCopAmount=(amount)=>{
+    if(!detailStrain)return;
+    const c=detailStrain.cops[detailCopIdx];
+    if(!c||c.amount)return;
+    const updated=strains.map(s=>s.id!==detailStrain.id?s:{...s,cops:s.cops.map(cc=>cc.id!==c.id?cc:{...cc,amount})});
+    setStrains(updated);setDetailStrain({...detailStrain,cops:detailStrain.cops.map(cc=>cc.id!==c.id?cc:{...cc,amount})});
+  };
+
+  const setCoppedIntent=(id,intent)=>{
+    setCoppedEntries(prev=>prev.map(e=>e.id!==id?e:e.intent?e:{...e,intent}));
+  };
+
+  const setCoppedAmount=(id,amount)=>{
+    setCoppedEntries(prev=>prev.map(e=>e.id!==id?e:e.amount?e:{...e,amount}));
   };
 
   const handleSaveNote=()=>{
@@ -618,6 +640,16 @@ export default function TheCloud({initialData={},onDataChange}){
         <svg width="22" height="22" viewBox="0 0 24 24" fill={detailStrain.starred?"#C9A84C":"none"} stroke={detailStrain.starred?"#C9A84C":P.borderDark} strokeWidth="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round"/></svg>
       </button>}{locked&&<span style={{fontSize:16}}>🔒</span>}</div>
 
+      {/* Intent + Amount */}
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {detailStrain.intent
+          ?<span style={{fontSize:11,padding:"3px 10px",borderRadius:8,background:detailStrain.intent==="asleep"?"#1A1A2E":detailStrain.intent==="awake"?"#FFF3E8":"#EDF2E8",color:detailStrain.intent==="asleep"?"#C9B8F0":detailStrain.intent==="awake"?"#C17F4A":"#6B7F5A",border:detailStrain.intent==="awake"?`0.5px solid #E8D0B0`:"none"}}>{detailStrain.intent==="asleep"?"🌙 asleep":detailStrain.intent==="awake"?"☀️ awake":"🏕️ adventure"}</span>
+          :<div style={{display:"flex",gap:4}}>{["asleep","awake","adventure"].map(i=><button key={i} onClick={()=>setStrainIntent(i)} style={{fontSize:10,padding:"3px 9px",borderRadius:8,border:`0.5px solid ${P.border}`,background:P.bg,color:P.textMuted,cursor:"pointer",fontFamily:"inherit"}}>{i==="asleep"?"🌙":i==="awake"?"☀️":"🏕️"} {i}</button>)}</div>}
+        {activeCop?.amount
+          ?<span style={{fontSize:11,padding:"3px 10px",borderRadius:8,background:P.surface,color:P.textMuted,border:`0.5px solid ${P.border}`}}>⚖️ {activeCop.amount}</span>
+          :<div style={{display:"flex",gap:4}}>{["8th","quarter","half","oz"].map(a=><button key={a} onClick={()=>setCopAmount(a)} style={{fontSize:10,padding:"3px 9px",borderRadius:8,border:`0.5px solid ${P.border}`,background:P.bg,color:P.textMuted,cursor:"pointer",fontFamily:"inherit"}}>{a}</button>)}</div>}
+      </div>
+
       {/* Cop tabs if multiple */}
       {detailStrain.cops.length>1&&<div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto"}}>{detailStrain.cops.map((c,i)=>(<button key={c.id} onClick={()=>setDetailCopIdx(i)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",fontWeight:detailCopIdx===i?500:400,background:detailCopIdx===i?typeColor(c.type):"transparent",color:detailCopIdx===i?P.cream:P.textMuted,border:detailCopIdx===i?"none":`1px solid ${P.borderDark}`}}>cop #{i+1} · {c.date}</button>))}</div>}
 
@@ -861,16 +893,17 @@ export default function TheCloud({initialData={},onDataChange}){
 
       {/* Copped */}
       {coppedEntries.length>0&&<><SectionLabel>ready to try</SectionLabel>{coppedEntries.map(e=><div key={e.id} style={{background:P.card,borderRadius:12,padding:14,marginBottom:8,border:`1.5px dashed ${P.terracotta}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><TypeBadge type={e.type}/><p style={{fontWeight:500,fontSize:15,margin:0,color:P.text}}>{e.strainName}</p><span style={{fontSize:10,background:P.terracotta,color:P.cream,padding:"2px 8px",borderRadius:10,fontWeight:500}}>copped</span>{e.strainId&&<span style={{fontSize:10,color:P.sage}}>re-cop</span>}</div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><TypeBadge type={e.type}/><p style={{fontWeight:500,fontSize:15,margin:0,color:P.text}}>{e.strainName}</p><span style={{fontSize:10,background:P.terracotta,color:P.cream,padding:"2px 8px",borderRadius:10,fontWeight:500}}>copped</span>{e.strainId&&<span style={{fontSize:10,color:P.sage}}>re-cop</span>}{e.intent&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:e.intent==="asleep"?"#1A1A2E":e.intent==="awake"?"#FFF3E8":"#EDF2E8",color:e.intent==="asleep"?"#C9B8F0":e.intent==="awake"?"#C17F4A":"#6B7F5A",border:e.intent==="awake"?`0.5px solid #E8D0B0`:"none"}}>{e.intent==="asleep"?"🌙":e.intent==="awake"?"☀️":"🏕️"}</span>}</div>
         <p style={{fontSize:12,color:P.textMuted,margin:"2px 0 6px"}}>{[e.type?.toLowerCase(),e.lean?.toLowerCase(),e.source==="TL"?"TL":e.source?.toLowerCase(),e.date].filter(Boolean).join(" · ")}</p>
         {e.terpenes?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:6}}>{e.terpenes.map(t=><span key={t} style={{fontSize:10,background:P.surface,color:P.sage,padding:"2px 6px",borderRadius:8}}>{t.toLowerCase()}</span>)}</div>}
-        {e.firstNotes&&<p style={{fontSize:12,color:P.textMuted,margin:"0 0 8px"}}>first impression: {e.firstNotes}</p>}
+        {!e.intent&&<div style={{display:"flex",gap:4,marginBottom:8}}>{["asleep","awake","adventure"].map(i=><button key={i} onClick={()=>setCoppedIntent(e.id,i)} style={{fontSize:10,padding:"3px 9px",borderRadius:8,border:`0.5px solid ${P.border}`,background:P.bg,color:P.textMuted,cursor:"pointer",fontFamily:"inherit"}}>{i==="asleep"?"🌙":i==="awake"?"☀️":"🏕️"} {i}</button>)}</div>}
+        {!e.amount&&<div style={{display:"flex",gap:4,marginBottom:8}}>{["8th","quarter","half","oz"].map(a=><button key={a} onClick={()=>setCoppedAmount(e.id,a)} style={{fontSize:10,padding:"3px 9px",borderRadius:8,border:`0.5px solid ${P.border}`,background:P.bg,color:P.textMuted,cursor:"pointer",fontFamily:"inherit"}}>{a}</button>)}</div>}
         <button onClick={()=>{setEditEntry(e);setView("session");}} style={{width:"100%",padding:10,borderRadius:8,fontSize:13,fontWeight:500,background:P.terracotta,color:P.cream,border:"none",cursor:"pointer",fontFamily:"inherit"}}>log first session</button>
       </div>)}<div style={{margin:"16px 0",borderTop:`1px solid ${P.border}`}}/></>}
 
       {/* On hand */}
-      {onHand.length>0&&<><SectionLabel>on hand</SectionLabel>{onHand.map(o=>{const s=strains.find(ss=>ss.id===o.strainId);return(<div key={o.copId} style={{background:P.onHandLight,borderRadius:12,padding:14,marginBottom:8,border:`1px solid ${P.onHand}40`}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><TypeBadge type={o.type}/><p style={{fontWeight:500,fontSize:15,margin:0,color:P.text}}>{o.strainName}</p><span style={{fontSize:10,background:P.onHand,color:P.cream,padding:"2px 8px",borderRadius:10,fontWeight:500}}>on hand</span></div>
+      {onHand.length>0&&<><SectionLabel>on hand</SectionLabel>{onHand.map(o=>{const s=strains.find(ss=>ss.id===o.strainId);const intent=s?.intent;return(<div key={o.copId} style={{background:P.onHandLight,borderRadius:12,padding:14,marginBottom:8,border:`1px solid ${P.onHand}40`}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><TypeBadge type={o.type}/><p style={{fontWeight:500,fontSize:15,margin:0,color:P.text}}>{o.strainName}</p><span style={{fontSize:10,background:P.onHand,color:P.cream,padding:"2px 8px",borderRadius:10,fontWeight:500}}>on hand</span>{intent&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:intent==="asleep"?"#1A1A2E":intent==="awake"?"#FFF3E8":"#EDF2E8",color:intent==="asleep"?"#C9B8F0":intent==="awake"?"#C17F4A":"#6B7F5A",border:intent==="awake"?`0.5px solid #E8D0B0`:"none"}}>{intent==="asleep"?"🌙":intent==="awake"?"☀️":"🏕️"}</span>}</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:8}}>{o.terpenes.map(t=><span key={t} style={{fontSize:10,background:P.surface,color:P.sage,padding:"2px 6px",borderRadius:8}}>{t.toLowerCase()}</span>)}</div>
         <div style={{display:"flex",gap:6}}>
           {s&&<button onClick={()=>openDetail(s)} style={{flex:1,padding:8,borderRadius:8,fontSize:12,background:P.card,color:P.text,border:`0.5px solid ${P.border}`,cursor:"pointer",fontFamily:"inherit"}}>view</button>}
@@ -1099,7 +1132,7 @@ export default function TheCloud({initialData={},onDataChange}){
         <p style={{fontSize:13,color:P.textMuted,margin:"0 0 16px"}}>based on {strains.length} strains · {allSessionCops.length} cops</p>
         
         <div style={{display:"flex",gap:4,marginBottom:16,overflowX:"auto",paddingBottom:4}}>
-          {[{k:"terpenes",l:"terpenes"},{k:"types",l:"types"},{k:"brands",l:"brands"},{k:"outdoor",l:"🌿 outdoor"},{k:"bedtime",l:"🌙 bedtime"}].map(t=>(
+          {[{k:"terpenes",l:"terpenes"},{k:"types",l:"types"},{k:"brands",l:"brands"},{k:"outdoor",l:"🌿 outdoor"},{k:"bedtime",l:"🌙 bedtime"},{k:"intent",l:"🎯 intent"}].map(t=>(
             <button key={t.k} onClick={()=>setInsightTab(t.k)} style={{padding:"6px 12px",borderRadius:14,fontSize:11,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",background:insightTab===t.k?P.sage:"transparent",color:insightTab===t.k?P.cream:P.textMuted,border:insightTab===t.k?"none":`1px solid ${P.borderDark}`,fontWeight:insightTab===t.k?500:400}}>{t.l}</button>
           ))}
         </div>
@@ -1376,7 +1409,7 @@ export default function TheCloud({initialData={},onDataChange}){
 
             const bedtimeSessions=allSessionCops.filter(c=>c.session?.bedtime);
             const bedtimeMixes=allSessionCops.flatMap(c=>(c.mixes||[]).filter(m=>m.bedtime&&m.status==="reviewed").map(m=>({...m,strain:c.strain,cop:c})));
-            const allBedtime=[...bedtimeSessions.map(c=>({type:"session",name:c.strain.name,rating:c.session.rating,terpenes:c.terpenes,spectrums:c.session.spectrums,vibeTags:c.session.vibeTags||[],copAgain:c.session.copAgain})),...bedtimeMixes.map(m=>({type:"mix",name:`${m.strain.name} x ${m.withStrain}`,rating:m.rating,terpenes:m.combinedTerpenes||[],spectrums:m.spectrums,vibeTags:m.vibeTags||[]}))];
+            const allBedtime=[...bedtimeSessions.map(c=>({type:"session",name:c.strain.name,rating:c.session.rating,terpenes:c.terpenes,spectrums:c.session.spectrums,vibeTags:c.session.vibeTags||[],copAgain:c.session.copAgain,intentConfirmed:strains.find(s=>s.id===c.strainId)?.intent==="asleep"})),...bedtimeMixes.map(m=>({type:"mix",name:`${m.strain.name} x ${m.withStrain}`,rating:m.rating,terpenes:m.combinedTerpenes||[],spectrums:m.spectrums,vibeTags:m.vibeTags||[],intentConfirmed:false}))];
             const wrongCalls=allBedtime.filter(isWrongCall);
             const goodCalls=allBedtime.filter(e=>!isWrongCall(e));
 
@@ -1407,7 +1440,10 @@ export default function TheCloud({initialData={},onDataChange}){
                 <p style={{fontSize:14,fontWeight:500,color:P.text,margin:"0 0 4px"}}>🌙 best bedtime strains</p>
                 <p style={{fontSize:11,color:P.textMuted,margin:"0 0 12px"}}>highest rated, no contradictory vibes</p>
                 {[...goodCalls].sort((a,b)=>b.rating-a.rating).slice(0,5).map((e,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,padding:"8px 10px",background:"#1A1A2E",borderRadius:8}}>
-                  <span style={{fontSize:13,color:"#C9B8F0",fontWeight:500}}>{e.name}{e.type==="mix"&&<span style={{fontSize:10,color:"#9B8FC0",marginLeft:4}}>mix</span>}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:13,color:"#C9B8F0",fontWeight:500}}>{e.name}{e.type==="mix"&&<span style={{fontSize:10,color:"#9B8FC0",marginLeft:4}}>mix</span>}</span>
+                    {e.intentConfirmed&&<span style={{fontSize:9,background:"rgba(139,127,212,0.2)",color:"#C9B8F0",padding:"1px 5px",borderRadius:5}}>🎯 intent confirmed</span>}
+                  </div>
                   <div style={{display:"flex",gap:1}}>{[1,2,3,4,5].map(n=><Leaf key={n} filled={n<=e.rating} color="#8B7FD4"/>)}</div>
                 </div>)}
               </div>}
@@ -1442,6 +1478,46 @@ export default function TheCloud({initialData={},onDataChange}){
                   </div>);
                 })}
               </div>}
+            </>);
+          })()}
+        </div>}
+
+        {/* INTENT REPORT */}
+        {insightTab==="intent"&&<div>
+          {(()=>{
+            const intentCops={awake:allSessionCops.filter(c=>strains.find(s=>s.id===c.strainId)?.intent==="awake"),asleep:allSessionCops.filter(c=>strains.find(s=>s.id===c.strainId)?.intent==="asleep"),adventure:allSessionCops.filter(c=>strains.find(s=>s.id===c.strainId)?.intent==="adventure")};
+            const hasAny=Object.values(intentCops).some(a=>a.length>0);
+            if(!hasAny)return(<div style={{background:P.card,borderRadius:12,padding:24,border:`0.5px solid ${P.border}`,textAlign:"center"}}><p style={{fontSize:14,color:P.textMuted,margin:"0 0 4px"}}>no intent data yet</p><p style={{fontSize:12,color:P.textMuted,margin:0}}>open a strain's detail view and set its intent to start building this report</p></div>);
+            const statCard=(label,emoji,cops,color)=>{
+              if(cops.length===0)return null;
+              const avg=+(cops.reduce((a,c)=>a+c.session.rating,0)/cops.length).toFixed(1);
+              const yes=cops.filter(c=>c.session.copAgain==="Yes").length;
+              const maybe=cops.filter(c=>c.session.copAgain==="Maybe").length;
+              const no=cops.filter(c=>c.session.copAgain==="No"||c.session.copAgain==="Never again").length;
+              const topTerps=Object.entries(cops.reduce((acc,c)=>{(c.terpenes||[]).forEach(t=>{acc[t]=(acc[t]||0)+1;});return acc;},{})).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t])=>t);
+              return(<div style={{background:P.card,borderRadius:12,padding:16,border:`0.5px solid ${P.border}`,marginBottom:14}}>
+                <p style={{fontSize:14,fontWeight:500,color:P.text,margin:"0 0 4px"}}>{emoji} {label}</p>
+                <p style={{fontSize:11,color:P.textMuted,margin:"0 0 12px"}}>{cops.length} cop{cops.length!==1?"s":""}</p>
+                <div style={{display:"flex",gap:10,marginBottom:12}}>
+                  <div style={{flex:1,background:P.bg,borderRadius:8,padding:10,textAlign:"center"}}>
+                    <p style={{fontSize:20,fontWeight:500,color,margin:0}}>{avg}</p>
+                    <p style={{fontSize:10,color:P.textMuted,margin:"3px 0 0"}}>avg rating</p>
+                  </div>
+                  <div style={{flex:1,background:P.bg,borderRadius:8,padding:10}}>
+                    <div style={{display:"flex",gap:4}}>
+                      <div style={{flex:1,textAlign:"center"}}><p style={{fontSize:14,fontWeight:500,color:P.sage,margin:0}}>{yes}</p><p style={{fontSize:9,color:P.textMuted,margin:"2px 0 0"}}>yes</p></div>
+                      <div style={{flex:1,textAlign:"center"}}><p style={{fontSize:14,fontWeight:500,color:P.terracotta,margin:0}}>{maybe}</p><p style={{fontSize:9,color:P.textMuted,margin:"2px 0 0"}}>maybe</p></div>
+                      <div style={{flex:1,textAlign:"center"}}><p style={{fontSize:14,fontWeight:500,color:P.textMuted,margin:0}}>{no}</p><p style={{fontSize:9,color:P.textMuted,margin:"2px 0 0"}}>no</p></div>
+                    </div>
+                  </div>
+                </div>
+                {topTerps.length>0&&<div><p style={{fontSize:10,color:P.textMuted,margin:"0 0 5px"}}>top terpenes</p><div style={{display:"flex",gap:4}}>{topTerps.map(t=><span key={t} style={{fontSize:10,background:P.surface,color:P.sage,padding:"2px 8px",borderRadius:8}}>{t.toLowerCase()}</span>)}</div></div>}
+              </div>);
+            };
+            return(<>
+              {statCard("asleep","🌙",intentCops.asleep,"#8B7FD4")}
+              {statCard("awake","☀️",intentCops.awake,P.terracotta)}
+              {statCard("adventure","🏕️",intentCops.adventure,P.onHand)}
             </>);
           })()}
         </div>}
