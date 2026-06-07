@@ -3,13 +3,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 
 /* ═══ CONSTANTS ═══ */
 const TERPENES=["Myrcene","Limonene","Caryophyllene","Linalool","Pinene","Humulene","Terpinolene","Ocimene","Bisabolol","Valencene","Nerolidol","Guaiol","Camphene","Geraniol","Eucalyptol"];
-const TASTE_TAGS=["Earthy","Citrus","Pine","Sweet","Gassy","Skunky","Floral","Peppery","Berry","Diesel","Tropical","Minty","Woody","Spicy"];
 const VIBE_CATEGORIES={
   "🏃":["Bed mode","Couch-locked","Clean mode","Get things done","Restless"],
   "🧠":["Deep thinking","Creative flow","Music dive","Zoned out","Laser focused"],
   "💬":["Conversational","Giggly","Hang out","Quiet mode"],
   "✨":["Munchies","Music hits different","Body high","Pain relief","Full-body euphoria","Horny","Connected to nature","Dream-inducing","Funny inner-dialogue"],
-  "📊":["Uplifted","Cozy","Sleepy","Energized","Anxious","Paranoid"]
+  "📊":["Uplifted","Cozy","Sleepy","Energized","Anxious","Paranoid","IDGAF mode"],
+  "👅":["Earthy","Citrus","Pine","Sweet","Gassy","Skunky","Floral","Peppery","Berry","Diesel","Tropical","Minty","Woody","Spicy"]
 };
 const VIBE_TAGS=Object.values(VIBE_CATEGORIES).flat();
 const P={bg:"#F5F0E8",card:"#FFFCF7",surface:"#EDE8DC",border:"#E8E0D0",borderDark:"#D4CABC",text:"#3A3228",textMuted:"#8C7E6A",textWarm:"#6B5D49",sage:"#6B7F5A",sageMid:"#7D9168",terracotta:"#C17F4A",terracottaLight:"#FFF3E8",cream:"#FFFCF7",plum:"#8B6D8B",plumLight:"#F0EAF0",plumBorder:"#C4B0C4",red:"#C15A4A",redLight:"#FDEEEC",sativa:"#C9A84C",indica:"#7B6B9E",onHand:"#5B8A72",onHandLight:"#EBF5EF"};
@@ -313,6 +313,13 @@ export default function TheCloud({initialData={},onDataChange}){
     setStrains(updated);setDetailStrain({...detailStrain,starred:newStarred});
   };
 
+  const toggleUnknownLineage=()=>{
+    if(!detailStrain)return;
+    const newVal=!detailStrain.unknownLineage;
+    const updated=strains.map(s=>s.id!==detailStrain.id?s:{...s,unknownLineage:newVal});
+    setStrains(updated);setDetailStrain({...detailStrain,unknownLineage:newVal});
+  };
+
   const handleSaveNote=()=>{
     if(!detailStrain||!updateNote.trim())return;
     const note={id:Date.now(),date:today(),text:updateNote.trim()};
@@ -536,8 +543,6 @@ export default function TheCloud({initialData={},onDataChange}){
       <label style={{fontSize:12,fontWeight:500,color:P.textMuted,display:"block",marginBottom:6}}>terpenes</label>
       <TerpeneSelector selected={cop.terpenes} onChange={t=>setCop({...cop,terpenes:t})}/><div style={{marginBottom:20}}/>
       {!cop.existingStrainId&&<><label style={{fontSize:12,fontWeight:500,color:P.textMuted,display:"block",marginBottom:6}}>parent strains <span style={{fontWeight:400,fontStyle:"italic"}}>(optional)</span></label><div style={{display:"flex",gap:8,marginBottom:20}}><input value={cop.parent1} onChange={e=>setCop({...cop,parent1:e.target.value})} placeholder="parent 1" style={{flex:1,background:P.bg,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none"}}/><span style={{display:"flex",alignItems:"center",color:P.textMuted}}>x</span><input value={cop.parent2} onChange={e=>setCop({...cop,parent2:e.target.value})} placeholder="parent 2" style={{flex:1,background:P.bg,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none"}}/></div></>}
-      <label style={{fontSize:12,fontWeight:500,color:P.textMuted,display:"block",marginBottom:6}}>first impressions <span style={{fontWeight:400,fontStyle:"italic"}}>(optional)</span></label>
-      <textarea value={cop.notes} onChange={e=>setCop({...cop,notes:e.target.value})} placeholder="smell, look, anything worth noting..." rows={3} style={{width:"100%",boxSizing:"border-box",background:P.bg,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none",resize:"vertical",marginBottom:24}}/>
       <button onClick={handleSaveCop} style={{width:"100%",padding:14,borderRadius:10,fontSize:15,fontWeight:500,background:P.terracotta,color:P.cream,border:"none",cursor:"pointer",fontFamily:"inherit"}}>save cop</button>
     </div></Wrapper>);
 
@@ -559,8 +564,7 @@ export default function TheCloud({initialData={},onDataChange}){
       <SpectrumSlider left="Couch-locked" right="Active" value={session.sw} onChange={v=>setSession({...session,sw:v})}/>
       <SpectrumSlider left="Dreamy" right="Analytical" value={session.sf} onChange={v=>setSession({...session,sf:v})} color={P.sage}/>
       <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:16}}><SectionLabel>the smoke</SectionLabel><SpectrumSlider left="Smooth" right="Harsh" value={session.pull} onChange={v=>setSession({...session,pull:v})} color={P.sage}/></div>
-      <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:16}}><p style={{fontSize:13,fontWeight:500,color:P.text,margin:"0 0 10px"}}>taste</p><TagSelector tags={TASTE_TAGS} selected={session.tasteTags} onChange={v=>setSession({...session,tasteTags:v})}/></div>
-      <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:16}}><p style={{fontSize:13,fontWeight:500,color:P.text,margin:"0 0 10px"}}>vibe tags</p><TagSelector categories={VIBE_CATEGORIES} tags={VIBE_TAGS} selected={session.vibeTags} onChange={v=>setSession({...session,vibeTags:v})}/></div>
+      <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:16}}><p style={{fontSize:13,fontWeight:500,color:P.text,margin:"0 0 10px"}}>vibe + taste tags</p><TagSelector categories={VIBE_CATEGORIES} tags={VIBE_TAGS} selected={[...session.vibeTags,...session.tasteTags]} onChange={v=>{const tasteSet=new Set(VIBE_CATEGORIES["👅"]);setSession({...session,vibeTags:v.filter(t=>!tasteSet.has(t)),tasteTags:v.filter(t=>tasteSet.has(t))});}} /></div>
       <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:16}}><p style={{fontSize:13,fontWeight:500,color:P.text,margin:"0 0 8px"}}>session notes <span style={{fontWeight:400,color:P.textMuted,fontStyle:"italic"}}>(optional)</span></p><textarea value={session.notes} onChange={e=>setSession({...session,notes:e.target.value})} placeholder="anything else worth noting..." rows={2} style={{width:"100%",boxSizing:"border-box",background:P.bg,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none",resize:"vertical"}}/></div>
       <div style={{borderTop:`0.5px solid ${P.border}`,paddingTop:16,marginBottom:20}}><p style={{fontSize:13,fontWeight:500,color:P.text,margin:"0 0 10px"}}>would i cop again?</p><div style={{display:"flex",gap:6}}>{["Yes","Maybe","No","Never again"].map(o=><button key={o} onClick={()=>setSession({...session,copAgain:o})} style={{flex:1,padding:"10px 4px",borderRadius:8,fontSize:o==="Never again"?10:13,fontFamily:"inherit",cursor:"pointer",fontWeight:session.copAgain===o?500:400,background:session.copAgain===o?copAgainColor(o):P.bg,color:session.copAgain===o?P.cream:P.textMuted,border:session.copAgain===o?"none":`0.5px solid ${P.border}`,transition:"all 0.15s"}}>{o.toLowerCase()}</button>)}</div></div>
       <button onClick={handleSaveSession} style={{width:"100%",padding:14,borderRadius:10,fontSize:15,fontWeight:500,background:P.terracotta,color:P.cream,border:"none",cursor:"pointer",fontFamily:"inherit"}}>save first session</button>
@@ -595,8 +599,13 @@ export default function TheCloud({initialData={},onDataChange}){
     return(<Wrapper>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}><BackBtn onClick={()=>{setView(null);setDetailStrain(null);reset("mix");}}/><div style={{flex:1}}><h2 style={{fontSize:22,fontWeight:500,margin:0,color:P.text,fontFamily:"'Playfair Display',serif"}}>{detailStrain.name}</h2>
         {!editingParents&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
-          {detailStrain.parents?.length>0?<p style={{fontSize:12,color:P.textMuted,margin:0}}>{detailStrain.parents.join(" x ")}</p>:<p style={{fontSize:11,color:P.borderDark,margin:0,fontStyle:"italic"}}>no parents logged</p>}
-          {!locked&&<button onClick={()=>setEditingParents({p1:detailStrain.parents?.[0]||"",p2:detailStrain.parents?.[1]||""})} style={{background:"none",border:"none",cursor:"pointer",padding:2,display:"flex"}}><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2L4 10H2v-2l6.5-6.5z" stroke={P.textMuted} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg></button>}
+          {detailStrain.unknownLineage
+            ?<p style={{fontSize:11,color:P.textMuted,margin:0,fontStyle:"italic"}}>lineage unknown</p>
+            :detailStrain.parents?.length>0
+              ?<p style={{fontSize:12,color:P.textMuted,margin:0}}>{detailStrain.parents.join(" x ")}</p>
+              :<p style={{fontSize:11,color:P.borderDark,margin:0,fontStyle:"italic"}}>no parents logged</p>}
+          {!locked&&!detailStrain.unknownLineage&&<button onClick={()=>setEditingParents({p1:detailStrain.parents?.[0]||"",p2:detailStrain.parents?.[1]||""})} style={{background:"none",border:"none",cursor:"pointer",padding:2,display:"flex"}}><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2L4 10H2v-2l6.5-6.5z" stroke={P.textMuted} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg></button>}
+          {!detailStrain.parents?.length&&<button onClick={toggleUnknownLineage} style={{background:"none",border:"none",cursor:"pointer",padding:"1px 4px",fontSize:10,color:detailStrain.unknownLineage?P.sage:P.textMuted,fontFamily:"inherit",textDecoration:"underline",textDecorationStyle:"dotted"}}>{detailStrain.unknownLineage?"undo":"unknown lineage?"}</button>}
         </div>}
         {editingParents&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:6}}>
           <input value={editingParents.p1} onChange={e=>setEditingParents({...editingParents,p1:e.target.value})} placeholder="parent 1" style={{flex:1,background:P.bg,borderRadius:6,padding:"6px 10px",fontSize:12,color:P.text,border:`0.5px solid ${P.border}`,fontFamily:"inherit",outline:"none"}}/>
@@ -929,7 +938,7 @@ export default function TheCloud({initialData={},onDataChange}){
 
         {searchSubTab==="suggestions"&&<div>
           {(()=>{
-            const favorites=strains.filter(s=>!s.legacy&&!isNeverAgain(s)&&(s.starred||s.cops.some(c=>c.session?.rating===5)));
+            const favorites=strains.filter(s=>!s.legacy&&!isNeverAgain(s)&&!s.unknownLineage&&(s.starred||s.cops.some(c=>c.session?.rating===5)));
             const existingNames=new Set(strains.map(s=>s.name.toLowerCase().trim()));
             const parentMap={};
             favorites.forEach(fav=>{
