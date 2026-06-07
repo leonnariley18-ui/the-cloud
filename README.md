@@ -13,14 +13,16 @@ cLOUD is a private journal for tracking every strain you smoke. Log what you cop
 ### core features
 
 - **re-ups** — group strains by haul (max 2 open at a time). auto-closes when every strain in the batch is finished.
-- **cop flow** — log strain name, type, lean, source, terpenes, parent strains, and grow type. supports TL, dispensary (bag or jar, indoor / greenhouse / outdoor grown), and street sources. first impressions live in notes — no dedicated field.
+- **cop flow** — log strain name, type, lean, source, terpenes, parent strains, and grow type. supports TL, dispensary (bag or jar, indoor / greenhouse / outdoor grown), and street sources.
+- **intent** — set once per strain, locks like starring. ☀️ awake / 🌙 asleep / 🏕️ adventure. shows as a badge on on-hand and ready-to-try cards. powers the intent insight tab and enriches bedtime + outdoor reports.
+- **amount copped** — set once per cop, locks. 8th / quarter / half / oz. pure data for now, patterns emerge over time.
 - **first session** — rate 1–5 leaves, set body + mind spectrums (7-notch couch-locked↔active, dreamy↔analytical), smooth↔harsh pull, setting, bedtime toggle, vibe + taste tags in one categorized picker, session notes, cop-again.
 - **on hand** — strains move here after first session. add notes, log experiences, mix with other on-hand strains.
 - **experiences** — capture notable smokes with setting (indoor/outdoor), bedtime toggle, vibe tags, and notes. dual-stored on both strains when mixed.
 - **mixes** — intentional 50/50 blends with another on-hand strain. full rating + spectrums. dual-stored on both strains via sharedId. rate now or queue for later. bedtime toggle available. a logged mix is a deliberate creative decision — not a salad situation.
 - **notes** — quick thoughts while a strain is on hand. editable and deletable. locks when finished. the primary capture tool for short cops.
 - **starring** — star strains you can't stop thinking about. powers the suggestions tab.
-- **unknown lineage** — mark a strain's lineage as genuinely unknown (not just unfilled). excludes from suggestions.
+- **unknown lineage** — mark a strain's lineage as genuinely unknown. excludes from suggestions.
 - **finishing** — mark a cop done. cop-again answer can be updated one final time. everything locks after. finishedDate recorded.
 
 ### vibe + taste tags
@@ -33,25 +35,41 @@ one categorized picker — six emoji categories:
 - 📊 mood: uplifted, cozy, sleepy, energized, anxious, paranoid, IDGAF mode
 - 👅 taste: earthy, citrus, pine, sweet, gassy, skunky, floral, peppery, berry, diesel, tropical, minty, woody, spicy
 
-taste tags save separately to `tasteTags` and display as terracotta pills. vibe tags save to `vibeTags` and display as neutral pills. same picker, visually distinct output.
+taste tags save to `tasteTags` (terracotta pills). vibe tags save to `vibeTags` (neutral pills). same picker, visually distinct output.
 
 ### library
 
 - **⭐ starred** — your favorites at a glance
-- **✨ suggestions** — strains recommended based on parent genetics of starred + 5-leaf strains. excludes unknown lineage strains.
+- **✨ suggestions** — strains recommended based on parent genetics of starred + 5-leaf strains. excludes unknown lineage.
 - **search** — full-text across names, parents, terpenes, taste, vibes, notes, experiences, and mix notes
-- **filters** — cop-again (yes/maybe), min rating (3+/4+/5+), month (dynamic — only shows months you have data for)
+- **filters** — cop-again (yes/maybe), min rating (3+/4+/5+), month (dynamic)
 - **mixes** — all reviewed mixes sorted by rating
-- **legacy** — 31 strains smoked before cLOUD existed. organized into strains + notes (detailed cards) and also loved (name grid). never-again strains shown as red pills.
-- **insights** — terpenes, types, brands, 🌿 outdoor report, 🌙 bedtime report
+- **legacy** — 31 strains smoked before cLOUD. strains + notes (detailed cards) and also loved (name grid). never-again as red pills.
+- **insights** — terpenes, types, brands, 🌿 outdoor, 🌙 bedtime, 🎯 intent
 
 ### insights
 
 - **terpenes** — avg rating + cop-again % per terpene, toggleable between pure sessions and mixes
 - **types** — indica / sativa / hybrid breakdown with ratings
-- **brands** — avg rating, cop-again breakdown, TL vs dispensary comparison, and 🌱 grow type preference (indoor vs greenhouse vs outdoor — only shows types with data)
-- **🌿 outdoor** — dedicated outdoor session report
-- **🌙 bedtime** — best bedtime strains, terpene affinity, and a 😬 wrong call list (marked bedtime but spectrums or vibes contradict it)
+- **brands** — avg rating, cop-again breakdown, TL vs dispensary, 🌱 grow type preference (indoor vs greenhouse vs outdoor)
+- **🌿 outdoor** — outdoor sessions AND adventure-intent cops combined. your full outdoor picture.
+- **🌙 bedtime** — best bedtime strains (with 🎯 intent confirmed badge where asleep intent + bedtime toggle both set), terpene affinity, 😬 wrong call list
+- **🎯 intent** — per-intent breakdown: cop count, avg rating, yes/maybe/no, top terpenes. only renders cards with data. gets richer as intent is backfilled and new cops are tagged.
+
+---
+
+## why the codebase is small
+
+1,500 lines in a single file for everything this app does. for context, a typical production app with this many features would be 5,000–15,000+ lines across 20–40 files. cLOUD stays lean because:
+
+- everything inline — no CSS files, no style imports, styles written directly on elements
+- no component library — every component (Leaf, Pill, SpectrumSlider, TagSelector etc.) is custom-built and does exactly what's needed
+- Supabase replaces an entire backend — no server code, no API routes, no schema migrations
+- single file architecture — works perfectly for a solo personal app
+- JSON blob data model — no relational query logic, no ORM
+- built for exactly one person — no permissions, no multi-tenancy, no internationalisation
+
+V2 will likely grow to 3,000–4,000 lines split across multiple files as the app gets separate pages. still lean by any standard.
 
 ---
 
@@ -76,7 +94,7 @@ the-cloud/
 │   ├── icon.png          # app icon (PWA)
 │   └── manifest.json     # PWA manifest
 ├── src/
-│   ├── App.jsx           # main app (all components + logic)
+│   ├── App.jsx           # main app — all components + logic (single file, ~1500 lines)
 │   ├── PinAuth.jsx       # PIN login + create screen
 │   ├── supabase.js       # supabase client
 │   └── main.jsx          # root — auth wrapper + data persistence
@@ -107,13 +125,11 @@ alter table users disable row level security;
 alter table app_data disable row level security;
 ```
 
-Data is stored as a single JSON blob per user — deeply nested state (strains → cops → sessions → experiences → mixes → notes) is simpler as one document than across relational tables for a single-user app.
+**will Supabase need updating for V2?** No schema changes needed. The JSON blob structure is flexible by nature — new fields (intent, amount, savedComparisons, savedTips) just get added to the blob without any SQL migrations. The only Supabase work for V2 is potentially adding a keep-alive GitHub Actions ping if the free tier starts pausing.
 
 ---
 
 ## environment variables
-
-Create `.env.local` in the project root (never commit this):
 
 ```
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
@@ -122,43 +138,31 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 
 ---
 
-## development
+## development + deployment
 
 ```bash
-npm run dev       # local dev server
+npm run dev       # local dev server (run in Codespaces)
 npm run build     # production build
 npm run deploy    # build + push to gh-pages branch
 ```
 
----
+**codespace workflow for updates:**
+1. open github.com → the-cloud repo → Code → Codespaces → reopen existing codespace
+2. update `src/App.jsx` with new code
+3. run `npm run deploy` in the terminal
+4. wait 2-3 minutes, hard refresh the app on your device
 
-## deployment
-
-Hosted on GitHub Pages via the `gh-pages` branch. Deploy with:
-
-```bash
-npm run deploy
-```
-
-Then: GitHub repo → Settings → Pages → source: `gh-pages` branch.
-
-Live at: `https://yourusername.github.io/the-cloud/`
+**V2 codespace work:** when the app splits into multiple files (App.jsx, Home.jsx, Stash.jsx, Compare.jsx, Recommender.jsx etc.), the deployment process stays identical — `npm run deploy` handles everything. file structure change is internal only.
 
 ---
 
 ## installing on device
 
-**Android (Chrome)**
-1. Open Chrome → navigate to the app URL
-2. Tap ⋮ menu → Add to Home Screen → Add
+**Android (Chrome):** ⋮ menu → Add to Home Screen
 
-**Chromebook (Chrome)**
-1. Open Chrome → navigate to the app URL
-2. Click the install icon in the address bar → Install
+**Chromebook (Chrome):** install icon in address bar → Install
 
-**iPhone/iPad (Safari only)**
-1. Open Safari → navigate to the app URL
-2. Tap Share → Add to Home Screen → Add
+**iPhone/iPad (Safari only):** Share → Add to Home Screen
 
 ---
 
@@ -166,84 +170,83 @@ Live at: `https://yourusername.github.io/the-cloud/`
 
 ```
 strain
+  ├── intent              (☀️ awake / 🌙 asleep / 🏕️ adventure — set once, locked)
   └── cops[]
+        ├── amount        (8th / quarter / half / oz — set once, locked)
         ├── session        (first smoke — rating, spectrums, tags, notes, bedtime)
         ├── experiences[]  (notable follow-up smokes — dual-stored when mixed)
         ├── mixes[]        (intentional 50/50 blends — dual-stored via sharedId)
         └── notes[]        (quick thoughts — on-hand only, locks after finished)
 
-legacyStrains[]            (pre-cLOUD history — name, cop-again, source, notes)
-coppedEntries[]            (copped but not yet smoked)
+legacyStrains[]            (31 pre-cLOUD strains — name, cop-again, source, notes)
+coppedEntries[]            (copped but not yet smoked — intent + amount settable here too)
 onHand[]                   (smoked, still have some)
 mixQueue[]                 (mixes queued for review)
 reups[]                    (open hauls — max 2)
-finishedReups[]            (closed hauls — max 5 shown on home)
+finishedReups[]            (closed hauls — max 5 on home)
 ```
 
 ---
 
 ## auth flow
 
-1. First visit → create a 4-digit PIN
-2. PIN is hashed with SHA-256 + a salt before storing in Supabase
-3. Session stored in `sessionStorage` — closing the tab requires re-entry
-4. Data auto-saves to Supabase 2 seconds after any change (debounced)
+1. first visit → create a 4-digit PIN
+2. PIN hashed with SHA-256 + salt before storing
+3. session stored in `sessionStorage` — closing the tab requires re-entry
+4. data auto-saves to Supabase 2 seconds after any change (debounced)
 
 ---
 
-## next update — planned features
+## V2 — full redesign + new features
 
-everything below is designed, mockuped, and ready to build. scheduled after current on-hand strains are finished.
+V2 is a complete architectural redesign. the data model stays the same (Supabase needs no changes), but the app splits into dedicated pages with a proper nav bar.
 
-### cop form — two new fields at the very top
+### what changes
 
-**intent** (☀️ awake / 🌙 asleep / 🏕️ adventure) — set before anything else. reflects what you're copping the strain for. adventure is seasonal in NYC (warmer months) but lives in the form year-round. optional and skippable.
+**navigation** — five-tab nav bar: 🏠 home / 🌿 stash / ✦ log (center, floating) / ⚖️ compare / ✦ recommender. logging only from home and stash.
 
-**amount copped** (8th / quarter / half / oz) — pure data for now, no behavior changes. over time will reveal patterns: do 8ths skew toward "maybe"? do larger cops rate higher? does terpene affinity vary by quantity?
+**home page** — a living preview of everything. curated, not exhaustive. sections:
+- your stash: intent-grouped (🌙 / ☀️ / 🏕️), strain name + status only (on hand / ready to try / mix needs logging). horizontal scroll within each group.
+- finished re-ups: compact, always on home.
+- last saved comparison: mini spectrum preview + the read quote. taps into compare page.
+- last saved cop tip: one terpene tip. taps into recommender page.
 
-**backfill mode** — a temporary edit button on finished cop cards for intent and amount only. lets you backfill re-up history with intent tags so the recommender has immediate data to work from. removed once history is caught up.
+**stash page** — all active cop management: open re-ups, mix queue, ready to try, on hand with full action buttons.
 
-### app-wide redesign — new navigation + home page
+**compare page** — pick any two logged strains (not legacy). shows intent badges, ratings, spectrums on shared visual axis, terpenes in three columns (A / shared / B), vibe tag overlap, "what you said" notes side by side, re-up pairing verdict, the read. **save comparisons** — bookmark icon saves to home page preview. builds an archive of meaningful pairings over time.
 
-**nav bar** — five tabs: 🏠 home / 🌿 stash / ✦ log (center, floating) / ⚖️ compare / ✦ recommender. logging only accessible from home and stash. library accessible from home page link and nav.
+**recommender page** — filtered by intent (☀️ / 🌙 / 🏕️ / overall). top terpenes ranked by avg rating per intent, winning terpene combos with proof strains, plain-english shopping tip. **save tips** — bookmark saves to home page preview. this is the app working as a self-knowledge engine — your data telling you what to look for at the point of purchase.
 
-**home page** — a living preview of everything. sections:
-- your stash: intent-grouped (🌙 asleep / ☀️ awake / 🏕️ adventure), strain name + status only (on hand / ready to try / mix needs logging). horizontal scroll within each group. "stash →" link.
-- finished re-ups: compact cards, always on home.
-- last saved comparison: mini spectrum preview + the read quote. "compare →" link.
-- last saved cop tip: one-line terpene recommendation. "recommender →" link.
+### what gets added to the cop form in V2
 
-**stash page** — dedicated page for all active cop management: open re-ups, mix queue, ready to try, on hand with full action buttons (note / experience / mix / finish). logging lives here and on home.
+intent (☀️ / 🌙 / 🏕️) and amount (8th / quarter / half / oz) move to the top of the cop form as the first two fields. for now they're set via backfill on existing cops.
 
-### compare page
+### what stays the same
 
-dedicated page. pick any two logged strains (not legacy). shows:
-- intent badges
-- ratings + context
-- body + mind spectrums on a shared visual axis
-- terpenes in three columns (A only / shared / B only)
-- vibe tags split by overlap
-- "what you said" — actual session notes side by side
-- re-up pairing verdict (complementary or redundant)
-- the read — plain english synthesis
+- Supabase schema — no changes, JSON blob handles new fields automatically
+- auth flow — identical
+- deployment — identical (`npm run deploy`)
+- all existing features — library, insights, compare, mixes, experiences, notes, everything
 
-**save comparisons** — bookmark icon on each comparison. saved comparisons surface on home as "last saved comparison." builds a personal archive of meaningful strain pairings over time.
+### saved for V2 — NOT building yet
 
-### recommender page
-
-dedicated page. filtered by intent (☀️ awake / 🌙 asleep / 🏕️ adventure / overall).
-- top terpenes ranked by avg rating per intent
-- winning terpene combos with which strains proved them
-- plain-english shopping tip: "when you cop for [intent], look for [combo]."
-
-**save recommendations** — bookmark icon on each tip. saved tips surface on home as "last saved cop tip." updates only when you actively save a new one.
-
-gets smarter with every cop logged. this is the app working as a self-knowledge engine — your data telling you what to look for at the point of purchase.
-
-### what one month of real data revealed
-
-the session form is never the problem — every first session is rich and deliberate regardless of cop size. notes are the real short-cop logging gesture, used naturally without prompting. mixes are intentional 50/50 decisions, not leftovers — the mix library grows slowly and that's correct. 8ths rarely produce experiences or mixes, quarters and up generate the longitudinal data the app is designed around. intent + amount are the two missing dimensions that unlock the recommender and give the comparison view its pairing verdict. caryophyllene is in every 5-leaf session logged — might be the terpene.
+- terpene filter by intent in the insights tab (foundation of recommender, save until recommender page exists)
+- quantity-aware on-hand card behavior (8th vs quarter card differences)
+- cop-again pulled forward on short cops
+- familiarity axis for re-cops of known strains
 
 ---
 
-*built in one conversation. one month of real data. logged with love.*
+## what the data reveals (two months in)
+
+- caryophyllene is in every 5-leaf session logged — likely the key terpene
+- session form is never the problem — every first session is rich regardless of cop size
+- notes are the unsung hero — used naturally, the real short-cop logging gesture
+- mixes are intentional 50/50 decisions — the mix library grows slowly and that's correct
+- 8ths rarely produce experiences or mixes — quarters and up generate longitudinal data
+- intent + amount are the two missing dimensions — everything else already existed
+- outdoor sessions consistently produce the most vivid, distinct experiences
+
+---
+
+*built in one conversation. logged with love.*
