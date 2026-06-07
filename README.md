@@ -195,25 +195,54 @@ finishedReups[]            (closed hauls — max 5 shown on home)
 
 everything below is designed, mockuped, and ready to build. scheduled after current on-hand strains are finished.
 
-**cop form — two new fields at the very top**
+### cop form — two new fields at the very top
 
-intent (☀️ awake / 🌙 asleep / 🏕️ adventure) and amount copped (8th / quarter / half / oz). both optional and skippable. intent reflects what you're copping the strain *for* — productive daytime use, winding down, or outdoor adventure. adventure is seasonal in NYC but lives in the form year-round. amount is pure data for now with no behavior changes — it'll reveal patterns over time (do 8ths skew toward "maybe"? do larger cops rate higher?).
+**intent** (☀️ awake / 🌙 asleep / 🏕️ adventure) — set before anything else. reflects what you're copping the strain for. adventure is seasonal in NYC (warmer months) but lives in the form year-round. optional and skippable.
 
-**active page — intent badge on on-hand cards**
+**amount copped** (8th / quarter / half / oz) — pure data for now, no behavior changes. over time will reveal patterns: do 8ths skew toward "maybe"? do larger cops rate higher? does terpene affinity vary by quantity?
 
-☀️ / 🌙 / 🏕️ shows at a glance next to the strain name. tonight's decision answered before you even open the strain detail.
+**backfill mode** — a temporary edit button on finished cop cards for intent and amount only. lets you backfill re-up history with intent tags so the recommender has immediate data to work from. removed once history is caught up.
 
-**library — new "compare" tab**
+### app-wide redesign — new navigation + home page
 
-side-by-side comparison of any two logged strains (not legacy). shows intent badges, ratings + context, body + mind spectrums on a shared visual axis, terpenes in three columns (A only / shared / B only), vibe tags split by overlap, your actual session notes side by side, a re-up pairing verdict (complementary or redundant), and a plain-english "the read" synthesis at the bottom.
+**nav bar** — five tabs: 🏠 home / 🌿 stash / ✦ log (center, floating) / ⚖️ compare / ✦ recommender. logging only accessible from home and stash. library accessible from home page link and nav.
 
-**insights — terpene cop recommender**
+**home page** — a living preview of everything. sections:
+- your stash: intent-grouped (🌙 asleep / ☀️ awake / 🏕️ adventure), strain name + status only (on hand / ready to try / mix needs logging). horizontal scroll within each group. "stash →" link.
+- finished re-ups: compact cards, always on home.
+- last saved comparison: mini spectrum preview + the read quote. "compare →" link.
+- last saved cop tip: one-line terpene recommendation. "recommender →" link.
 
-filtered by intent (awake / asleep / adventure / overall). surfaces your top terpenes and winning terpene combos for each use case, with a plain-english shopping tip: "when you cop for [intent], look for [terpene combo]." gets smarter every cop. this is the app working as a self-knowledge engine — your data telling you what to look for at the point of purchase.
+**stash page** — dedicated page for all active cop management: open re-ups, mix queue, ready to try, on hand with full action buttons (note / experience / mix / finish). logging lives here and on home.
 
-**what the first month of data revealed**
+### compare page
 
-the session form is never the problem — every first session is rich and deliberate regardless of cop size. notes are the real short-cop logging gesture, used naturally without prompting. mixes are intentional 50/50 decisions, not leftovers — the mix library grows slowly and that's correct. 8ths rarely produce experiences or mixes, quarters and up generate the longitudinal data the app is designed around. intent + amount are the two missing dimensions — every other field already exists. once logged, they unlock the recommender and give the comparison view its pairing verdict.
+dedicated page. pick any two logged strains (not legacy). shows:
+- intent badges
+- ratings + context
+- body + mind spectrums on a shared visual axis
+- terpenes in three columns (A only / shared / B only)
+- vibe tags split by overlap
+- "what you said" — actual session notes side by side
+- re-up pairing verdict (complementary or redundant)
+- the read — plain english synthesis
+
+**save comparisons** — bookmark icon on each comparison. saved comparisons surface on home as "last saved comparison." builds a personal archive of meaningful strain pairings over time.
+
+### recommender page
+
+dedicated page. filtered by intent (☀️ awake / 🌙 asleep / 🏕️ adventure / overall).
+- top terpenes ranked by avg rating per intent
+- winning terpene combos with which strains proved them
+- plain-english shopping tip: "when you cop for [intent], look for [combo]."
+
+**save recommendations** — bookmark icon on each tip. saved tips surface on home as "last saved cop tip." updates only when you actively save a new one.
+
+gets smarter with every cop logged. this is the app working as a self-knowledge engine — your data telling you what to look for at the point of purchase.
+
+### what one month of real data revealed
+
+the session form is never the problem — every first session is rich and deliberate regardless of cop size. notes are the real short-cop logging gesture, used naturally without prompting. mixes are intentional 50/50 decisions, not leftovers — the mix library grows slowly and that's correct. 8ths rarely produce experiences or mixes, quarters and up generate the longitudinal data the app is designed around. intent + amount are the two missing dimensions that unlock the recommender and give the comparison view its pairing verdict. caryophyllene is in every 5-leaf session logged — might be the terpene.
 
 ---
 
