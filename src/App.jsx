@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
    SUPABASE
    ═══════════════════════════════════════════ */
 const SB_URL="https://pukzhmhevjbfwvhjzppr.supabase.co";
-const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a3pobWhldmpiZnd2aGp6cHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MTgyNzIsImV4cCI6MjA2MDQ5NDI3Mn0.kV5xLqXMSzwLGxQmFM_Ffi2XMoPszNSiT4FYfJFaVkc";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a3pobWhldmpiZnd2aGp6cHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjUzNTYsImV4cCI6MjA5MzM0MTM1Nn0.-Jl1tv-xeOTwv6cd-OgF-ovooLfYyzoaA2c7Seax3Zo";
 const sbFetch=async(path,opts={})=>{const res=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,"Content-Type":"application/json",Prefer:opts.method==="PATCH"?"return=minimal":"return=representation",...opts.headers}});if(!res.ok)return null;if(opts.method==="PATCH")return true;return res.json();};
 const hashPin=async pin=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");};
 
