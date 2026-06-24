@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 /* ═══════════════════════════════════════════
    SUPABASE
    ═══════════════════════════════════════════ */
 const SB_URL="https://pukzhmhevjbfwvhjzppr.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a3pobWhldmpiZnd2aGp6cHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MTgyNzIsImV4cCI6MjA2MDQ5NDI3Mn0.kV5xLqXMSzwLGxQmFM_Ffi2XMoPszNSiT4FYfJFaVkc";
-const sbFetch=async(path,opts={})=>{const res=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,"Content-Type":"application/json",Prefer:opts.method==="PATCH"?"return=minimal":"return=representation",...opts.headers}});if(!res.ok)return null;if(opts.method==="PATCH")return true;return res.json();};
-const hashPin=async pin=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");};
+const supabase=createClient(SB_URL,SB_KEY,{auth:{flowType:"pkce",autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -102,164 +102,58 @@ const TagSelector=({tags,categories,selected,onChange,color=P.terracotta})=>{
 };
 
 /* ═══════════════════════════════════════════
-   AUTH SCREEN — EMBER GLOW
+   MAGIC LINK SCREEN
    ═══════════════════════════════════════════ */
-function AuthScreen({onAuth}){
-  const canvasRef=useRef(null);
-  const stateRef=useRef({sequence:[],dragging:false,cursorPos:null,t:0,wrongFlicker:0,trailParticles:[],animId:null});
-  const[hint,setHint]=useState("");
-  const[hintColor,setHintColor]=useState("rgba(232,200,154,0.25)");
-  const[ready,setReady]=useState(false);
+function MagicLinkScreen(){
+  const[email,setEmail]=useState("");
+  const[sent,setSent]=useState(false);
   const[loading,setLoading]=useState(false);
-  const[btnStyle,setBtnStyle]=useState({color:"rgba(232,200,154,0.2)",background:"rgba(193,127,74,0.08)",borderColor:"rgba(193,127,74,0.12)"});
-  const W=290,H=290;
-  const NODES=[{id:0,x:52,y:55},{id:1,x:152,y:28},{id:2,x:242,y:62},{id:3,x:268,y:148},{id:4,x:238,y:238},{id:5,x:145,y:262},{id:6,x:52,y:232},{id:7,x:22,y:145},{id:8,x:120,y:122},{id:9,x:192,y:168}];
-  const nodeStateRef=useRef(NODES.map(n=>({wisps:Array.from({length:6},()=>({x:n.x,y:n.y,vx:(Math.random()-0.5)*0.5,vy:-(0.4+Math.random()*0.7),life:Math.floor(Math.random()*70),maxLife:55+Math.random()*45,size:2.5+Math.random()*3,wobble:Math.random()*Math.PI*2,wSpeed:0.02+Math.random()*0.03})),shape:Array.from({length:8},(_,i)=>({angle:(i/8)*Math.PI*2,r:0.75+Math.random()*0.5})),intensity:0,flicker:Math.random()*Math.PI*2,flickerSpeed:0.06+Math.random()*0.06,pulsePhase:Math.random()*Math.PI*2})));
+  const[error,setError]=useState("");
 
-  const updateHint=(seq)=>{
-    if(seq.length===0){setHint("");setHintColor("rgba(232,200,154,0.25)");}
-    else if(seq.length<3){setHint(`${seq.length} ember${seq.length>1?"s":""} lit`);setHintColor("rgba(232,200,154,0.35)");}
-    else{setHint(`${seq.length} embers`);setHintColor("rgba(232,200,154,0.5)");}
+  const sendLink=async()=>{
+    if(!email.trim()||loading)return;
+    setLoading(true);setError("");
+    const{error:err}=await supabase.auth.signInWithOtp({
+      email:email.trim(),
+      options:{emailRedirectTo:"https://leonnariley18-ui.github.io/the-cloud/"}
+    });
+    if(err){setError("something went wrong. try again.");setLoading(false);}
+    else{setSent(true);setLoading(false);}
   };
 
-  const triggerWrong=()=>{
-    const S=stateRef.current;S.wrongFlicker=40;
-    setHint("🚭 no smoke");setHintColor("rgba(220,80,40,0.8)");setReady(false);
-    setBtnStyle({color:"rgba(220,80,40,0.4)",background:"rgba(220,80,40,0.06)",borderColor:"rgba(220,80,40,0.2)"});
-    setTimeout(()=>nodeStateRef.current.forEach(s=>{s.intensity=0.15;}),200);
-    setTimeout(()=>{nodeStateRef.current.forEach(s=>{s.intensity=0.05;});setHintColor("rgba(140,120,100,0.35)");},500);
-    setTimeout(()=>{S.sequence=[];S.trailParticles.length=0;nodeStateRef.current.forEach(s=>{s.intensity=0;});setHint("");setBtnStyle({color:"rgba(232,200,154,0.2)",background:"rgba(193,127,74,0.08)",borderColor:"rgba(193,127,74,0.12)"});updateHint([]);},1100);
-  };
-
-  const doAuth=async(seq)=>{
-    if(seq.length<3||loading)return;
-    setLoading(true);
-    try{
-      const token=await hashPin(seq.join("-"));
-      const rows=await sbFetch(`cloud_data?user_token=eq.${token}&select=*`);
-      if(rows&&rows.length>0){onAuth(token,rows[0].data||{});}
-      else if(rows&&rows.length===0){const created=await sbFetch("cloud_data",{method:"POST",body:JSON.stringify({user_token:token,data:{}})});if(created)onAuth(token,{});else triggerWrong();}
-      else triggerWrong();
-    }catch{triggerWrong();}
-    setLoading(false);
-  };
-
-  useEffect(()=>{
-    const canvas=canvasRef.current;const ctx=canvas.getContext("2d");const S=stateRef.current;const NS=nodeStateRef.current;
-    const spawnTrail=(a,b)=>{for(let i=0;i<12;i++){const prog=i/12;S.trailParticles.push({x:a.x+(b.x-a.x)*prog+(Math.random()-0.5)*6,y:a.y+(b.y-a.y)*prog+(Math.random()-0.5)*6,vx:(Math.random()-0.5)*0.3,vy:-(0.3+Math.random()*0.5),life:0,maxLife:30+Math.random()*20,size:1.5+Math.random()*2,delay:S.t+i*2});}};
-    const drawEmberShape=(x,y,baseR,shape,flickerVal)=>{const r=baseR*(1+flickerVal*0.15);ctx.beginPath();shape.forEach((pt,i)=>{const angle=pt.angle+flickerVal*0.3;const radius=r*pt.r*(1+Math.sin(S.t*0.08+i)*0.08);const px=x+Math.cos(angle)*radius,py=y+Math.sin(angle)*radius;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();};
-    const draw=()=>{
-      S.t++;ctx.clearRect(0,0,W,H);if(S.wrongFlicker>0)S.wrongFlicker--;
-      for(let i=S.trailParticles.length-1;i>=0;i--){const p=S.trailParticles[i];if(S.t<p.delay)continue;p.life++;p.x+=p.vx;p.y+=p.vy;if(p.life>p.maxLife){S.trailParticles.splice(i,1);continue;}const prog=p.life/p.maxLife;ctx.beginPath();ctx.arc(p.x,p.y,p.size*(1-prog*0.5),0,Math.PI*2);ctx.fillStyle=`rgba(200,120,40,${Math.sin(prog*Math.PI)*0.4})`;ctx.fill();}
-      if(S.sequence.length>1){for(let i=0;i<S.sequence.length-1;i++){const a=NODES[S.sequence[i]],b=NODES[S.sequence[i+1]];ctx.beginPath();ctx.strokeStyle=S.wrongFlicker>0?"rgba(200,60,20,0.1)":"rgba(160,80,20,0.15)";ctx.lineWidth=8;ctx.lineCap="round";ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.beginPath();ctx.strokeStyle=S.wrongFlicker>0?"rgba(220,80,40,0.4)":"rgba(210,140,50,0.35)";ctx.lineWidth=1.5;ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}
-      if(S.dragging&&S.cursorPos&&S.sequence.length>0){const last=NODES[S.sequence[S.sequence.length-1]];ctx.beginPath();ctx.strokeStyle="rgba(193,127,74,0.15)";ctx.lineWidth=1;ctx.setLineDash([3,6]);ctx.moveTo(last.x,last.y);ctx.lineTo(S.cursorPos.x,S.cursorPos.y);ctx.stroke();ctx.setLineDash([]);}
-      NODES.forEach((n,ni)=>{
-        const state=NS[ni];const selected=S.sequence.includes(n.id);const selIdx=S.sequence.indexOf(n.id);const isLast=selIdx===S.sequence.length-1&&S.sequence.length>0;
-        const targetIntensity=selected?0.3+(selIdx/Math.max(S.sequence.length-1,1))*0.7:0;state.intensity+=(targetIntensity-state.intensity)*0.08;
-        state.flicker+=state.flickerSpeed;const flickerVal=Math.sin(state.flicker)*0.5+Math.sin(state.flicker*2.3)*0.3;const pulse=0.5+0.5*Math.sin(S.t*0.04+state.pulsePhase);
-        if(selected&&S.wrongFlicker===0){state.wisps.forEach(w=>{w.life++;w.wobble+=w.wSpeed;w.x+=w.vx+Math.sin(w.wobble)*0.4;w.y+=w.vy;if(w.life>w.maxLife){w.x=n.x+(Math.random()-0.5)*5;w.y=n.y-3;w.vx=(Math.random()-0.5)*0.5;w.vy=-(0.4+Math.random()*0.7*(isLast?1.4:1));w.life=0;w.size=2.5+Math.random()*3;w.wobble=Math.random()*Math.PI*2;}const prog=w.life/w.maxLife;const wAlpha=Math.sin(prog*Math.PI)*0.3*state.intensity;if(wAlpha<0.01)return;ctx.beginPath();ctx.arc(w.x,w.y,w.size*(0.5+prog*0.5),0,Math.PI*2);ctx.fillStyle=`rgba(180,120,60,${wAlpha})`;ctx.fill();});}
-        if(S.wrongFlicker>0){const wAlpha=(S.wrongFlicker/30)*0.4;const wg=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,18);wg.addColorStop(0,`rgba(220,50,20,${wAlpha})`);wg.addColorStop(1,"rgba(220,50,20,0)");ctx.beginPath();ctx.fillStyle=wg;ctx.arc(n.x,n.y,18,0,Math.PI*2);ctx.fill();}
-        const baseR=selected?6+state.intensity*3:4;const glowR=selected?22+state.intensity*12+flickerVal*4:10+pulse*4;
-        const glow=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,glowR);
-        if(selected){const b=state.intensity;glow.addColorStop(0,`rgba(220,${130+b*60},${30+b*20},${0.5+b*0.3})`);glow.addColorStop(0.3,`rgba(180,90,20,${0.2+b*0.15})`);glow.addColorStop(1,"rgba(140,50,0,0)");}
-        else{glow.addColorStop(0,`rgba(180,90,20,${0.15*pulse})`);glow.addColorStop(1,"rgba(140,50,0,0)");}
-        ctx.beginPath();ctx.fillStyle=glow;ctx.arc(n.x,n.y,glowR,0,Math.PI*2);ctx.fill();
-        drawEmberShape(n.x,n.y,baseR,state.shape,flickerVal);
-        if(selected){const b=state.intensity;ctx.fillStyle=`rgba(${220+b*35},${130+b*80},${30+b*20},0.95)`;}else ctx.fillStyle=`rgba(160,80,20,${0.25+pulse*0.2})`;ctx.fill();
-        if(selected){ctx.beginPath();ctx.arc(n.x,n.y,baseR*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(255,${220+state.intensity*35},${150+state.intensity*60},${0.8+state.intensity*0.2})`;ctx.fill();}
-      });
-      S.animId=requestAnimationFrame(draw);
-    };
-    const getPos=(e)=>{const r=canvas.getBoundingClientRect();if(e.touches)return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};return{x:e.clientX-r.left,y:e.clientY-r.top};};
-    const hitTest=(x,y)=>{for(const n of NODES){const dx=x-n.x,dy=y-n.y;if(Math.sqrt(dx*dx+dy*dy)<28)return n;}return null;};
-    const onStart=(e)=>{e.preventDefault();const pos=getPos(e);const hit=hitTest(pos.x,pos.y);if(hit&&!S.sequence.includes(hit.id)){S.dragging=true;S.sequence=[hit.id];S.cursorPos=pos;updateHint(S.sequence);setReady(false);setBtnStyle({color:"rgba(232,200,154,0.2)",background:"rgba(193,127,74,0.08)",borderColor:"rgba(193,127,74,0.12)"});}};
-    const onMove=(e)=>{e.preventDefault();if(!S.dragging)return;const pos=getPos(e);S.cursorPos=pos;const hit=hitTest(pos.x,pos.y);if(hit&&!S.sequence.includes(hit.id)){spawnTrail(NODES[S.sequence[S.sequence.length-1]],hit);S.sequence.push(hit.id);updateHint(S.sequence);}};
-    const onEnd=(e)=>{if(!S.dragging)return;S.dragging=false;S.cursorPos=null;if(S.sequence.length>=3){setHint("it's lit 🧨");setHintColor("rgba(232,200,154,0.6)");setReady(true);setBtnStyle({color:"rgba(232,200,154,0.9)",background:"rgba(193,127,74,0.18)",borderColor:"rgba(193,127,74,0.3)"});}else if(S.sequence.length>0){setHint("light at least 3");setHintColor("rgba(232,200,154,0.3)");setTimeout(()=>{S.sequence=[];updateHint([]);},1000);}};
-    canvas.addEventListener("touchstart",onStart,{passive:false});canvas.addEventListener("touchmove",onMove,{passive:false});canvas.addEventListener("touchend",onEnd,{passive:false});canvas.addEventListener("mousedown",onStart);window.addEventListener("mousemove",onMove);window.addEventListener("mouseup",onEnd);
-    draw();
-    return()=>{cancelAnimationFrame(S.animId);canvas.removeEventListener("touchstart",onStart);canvas.removeEventListener("touchmove",onMove);canvas.removeEventListener("touchend",onEnd);canvas.removeEventListener("mousedown",onStart);window.removeEventListener("mousemove",onMove);window.removeEventListener("mouseup",onEnd);};
-  },[]);
-
-  const[showImport,setShowImport]=useState(false);
-  const[importPin,setImportPin]=useState("");
-  const[importStep,setImportStep]=useState("pin");
-  const[importError,setImportError]=useState("");
-  const[importLoading,setImportLoading]=useState(false);
-  const importDataRef=useRef(null);
-  const importTokenRef=useRef(null);
-
-  const handleImportPin=async()=>{
-    if(importPin.length<4||importLoading)return;
-    setImportLoading(true);setImportError("");
-    try{
-      const oldToken=await hashPin(importPin);
-      const rows=await sbFetch(`cloud_data?user_token=eq.${oldToken}&select=*`);
-      if(rows&&rows.length>0){
-        importDataRef.current=rows[0].data||{};
-        importTokenRef.current=oldToken;
-        setImportStep("draw");
-        setImportLoading(false);
-      }else{setImportError("no account found for that pin");setImportLoading(false);}
-    }catch{setImportError("couldn't connect — try again");setImportLoading(false);}
-  };
-
-  const handleImportDraw=async(seq)=>{
-    if(seq.length<3||importLoading)return;
-    setImportLoading(true);
-    try{
-      const newToken=await hashPin(seq.join("-"));
-      const created=await sbFetch("cloud_data",{method:"POST",body:JSON.stringify({user_token:newToken,data:importDataRef.current})});
-      if(created){setImportStep("done");setTimeout(()=>onAuth(newToken,importDataRef.current),1200);}
-      else{setImportError("something went wrong — try again");setImportLoading(false);}
-    }catch{setImportError("couldn't connect — try again");setImportLoading(false);}
-  };
-
-  const ImportFlow=()=>(
-    <div style={{position:"fixed",inset:0,background:"rgba(18,13,6,0.96)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 40px"}}>
-      <button onClick={()=>{setShowImport(false);setImportStep("pin");setImportPin("");setImportError("");}} style={{position:"absolute",top:24,right:24,background:"none",border:"none",color:"rgba(232,200,154,0.3)",fontSize:18,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-      {importStep==="pin"&&<>
-        <p style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"#E8C89A",marginBottom:6,fontWeight:400}}>import from V1</p>
-        <p style={{fontSize:11,color:"rgba(232,200,154,0.3)",letterSpacing:"0.5px",marginBottom:32,textAlign:"center"}}>enter your old 4-digit PIN to bring your data over</p>
-        <div style={{display:"flex",gap:14,marginBottom:28}}>
-          {[0,1,2,3].map(i=><div key={i} style={{width:11,height:11,borderRadius:"50%",background:importPin.length>i?"#C17F4A":"rgba(193,127,74,0.18)",boxShadow:importPin.length>i?"0 0 0 3px rgba(193,127,74,0.12)":"none",transition:"all 0.15s"}}/>)}
+  return(
+    <div style={{background:"#120D06",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:"0 32px"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet"/>
+      <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:500,height:500,background:"radial-gradient(ellipse,rgba(160,60,10,0.15) 0%,rgba(120,40,5,0.08) 40%,transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
+      <p style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:500,color:"#E8C89A",letterSpacing:"1.5px",marginBottom:40,position:"relative",zIndex:2}}>cLOUD</p>
+      {!sent?(
+        <div style={{width:"100%",maxWidth:280,position:"relative",zIndex:2}}>
+          <p style={{fontSize:12,color:"rgba(232,200,154,0.4)",letterSpacing:"0.5px",textAlign:"center",marginBottom:20}}>enter your email to get a login link</p>
+          <input
+            type="email"
+            value={email}
+            onChange={e=>setEmail(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&sendLink()}
+            placeholder="your@email.com"
+            autoFocus
+            style={{width:"100%",boxSizing:"border-box",background:"rgba(232,200,154,0.06)",border:"0.5px solid rgba(232,200,154,0.15)",borderRadius:12,padding:"14px 16px",fontSize:14,color:"#E8C89A",fontFamily:"inherit",outline:"none",textAlign:"center",letterSpacing:"0.3px",marginBottom:12}}
+          />
+          {error&&<p style={{fontSize:11,color:"rgba(220,80,40,0.7)",textAlign:"center",marginBottom:10}}>{error}</p>}
+          <button
+            onClick={sendLink}
+            style={{width:"100%",padding:"14px 0",borderRadius:12,fontSize:12,letterSpacing:"2px",fontFamily:"inherit",border:"0.5px solid rgba(232,200,154,0.2)",background:loading?"rgba(193,127,74,0.1)":"rgba(193,127,74,0.15)",color:loading?"rgba(232,200,154,0.4)":"rgba(232,200,154,0.8)",cursor:loading?"default":"pointer",textTransform:"lowercase",transition:"all 0.3s"}}
+          >{loading?"sending...":"send link"}</button>
         </div>
-        <div style={{width:"100%",maxWidth:260,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:8}}>
-          {[1,2,3,4,5,6,7,8,9].map(n=><button key={n} onClick={()=>{if(importPin.length<4){const next=importPin+n;setImportPin(next);if(next.length===4)setTimeout(()=>{},80);}}} style={{aspectRatio:"1.15",borderRadius:14,background:"rgba(232,200,154,0.06)",border:"0.5px solid rgba(232,200,154,0.1)",fontSize:22,fontWeight:300,color:"rgba(232,200,154,0.7)",cursor:"pointer",fontFamily:"inherit"}}>{n}</button>)}
+      ):(
+        <div style={{width:"100%",maxWidth:280,position:"relative",zIndex:2,textAlign:"center"}}>
+          <p style={{fontSize:22,marginBottom:12}}>✉️</p>
+          <p style={{fontSize:14,color:"rgba(232,200,154,0.7)",marginBottom:8,lineHeight:1.5}}>check your email</p>
+          <p style={{fontSize:12,color:"rgba(232,200,154,0.35)",lineHeight:1.6}}>tap the link in the email and you'll be in. you can close this tab.</p>
+          <button onClick={()=>{setSent(false);setEmail("");}} style={{marginTop:24,background:"none",border:"none",fontSize:11,color:"rgba(232,200,154,0.2)",cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.5px"}}>use a different email</button>
         </div>
-        <div style={{width:"100%",maxWidth:260,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
-          <div/>
-          <button onClick={()=>{if(importPin.length<4){const next=importPin+"0";setImportPin(next);}}} style={{aspectRatio:"1.15",borderRadius:14,background:"rgba(232,200,154,0.06)",border:"0.5px solid rgba(232,200,154,0.1)",fontSize:22,fontWeight:300,color:"rgba(232,200,154,0.7)",cursor:"pointer",fontFamily:"inherit"}}>0</button>
-          <button onClick={()=>setImportPin(importPin.slice(0,-1))} style={{aspectRatio:"1.15",borderRadius:14,background:"rgba(232,200,154,0.06)",border:"0.5px solid rgba(232,200,154,0.1)",fontSize:13,color:"rgba(232,200,154,0.3)",cursor:"pointer",fontFamily:"inherit"}}>⌫</button>
-        </div>
-        {importError&&<p style={{fontSize:11,color:"rgba(220,80,40,0.7)",marginBottom:12,letterSpacing:"0.5px"}}>{importError}</p>}
-        <button onClick={handleImportPin} disabled={importPin.length<4||importLoading} style={{width:"100%",maxWidth:260,padding:"14px 0",borderRadius:14,background:importPin.length<4?"rgba(193,127,74,0.08)":"rgba(193,127,74,0.2)",color:importPin.length<4?"rgba(232,200,154,0.25)":"rgba(232,200,154,0.9)",border:"0.5px solid rgba(193,127,74,0.2)",fontSize:12,letterSpacing:"2px",fontFamily:"inherit",cursor:importPin.length<4?"default":"pointer",transition:"all 0.3s"}}>{importLoading?"finding your data...":"find my data"}</button>
-      </>}
-      {importStep==="draw"&&<>
-        <p style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"#E8C89A",marginBottom:6,fontWeight:400}}>data found ✦</p>
-        <p style={{fontSize:11,color:"rgba(232,200,154,0.3)",letterSpacing:"0.5px",marginBottom:8,textAlign:"center"}}>now draw your new ember pattern</p>
-        <p style={{fontSize:10,color:"rgba(232,200,154,0.2)",letterSpacing:"0.5px",marginBottom:16,textAlign:"center"}}>this replaces your old PIN — remember it</p>
-        {importError&&<p style={{fontSize:11,color:"rgba(220,80,40,0.7)",marginBottom:8,letterSpacing:"0.5px"}}>{importError}</p>}
-        <p style={{fontSize:11,color:"rgba(232,200,154,0.35)",letterSpacing:"1px",textAlign:"center"}}>go back to the ember screen, draw your pattern,{"\n"}then tap enter — it will complete the import</p>
-        <button onClick={()=>{setShowImport(false);}} style={{marginTop:24,width:"100%",maxWidth:260,padding:"14px 0",borderRadius:14,background:"rgba(193,127,74,0.15)",color:"rgba(232,200,154,0.8)",border:"0.5px solid rgba(193,127,74,0.2)",fontSize:12,letterSpacing:"2px",fontFamily:"inherit",cursor:"pointer"}}>draw my pattern →</button>
-      </>}
-      {importStep==="done"&&<>
-        <p style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:"#E8C89A",marginBottom:8,fontWeight:400}}>it's lit 🧨</p>
-        <p style={{fontSize:12,color:"rgba(232,200,154,0.4)",letterSpacing:"0.5px",textAlign:"center"}}>your V1 data is in. opening cLOUD...</p>
-      </>}
+      )}
     </div>
   );
-
-  return(<div style={{background:"#120D06",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",overflow:"hidden",touchAction:"none",position:"relative"}}>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet"/>
-    {showImport&&<ImportFlow/>}
-    <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:600,height:600,background:"radial-gradient(ellipse,rgba(160,60,10,0.2) 0%,rgba(120,40,5,0.1) 40%,transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-    <p style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:500,color:"#E8C89A",letterSpacing:"1.5px",marginBottom:10,position:"relative",zIndex:2}}>cLOUD</p>
-    <p style={{fontSize:11,color:hintColor,letterSpacing:"1px",minHeight:18,marginBottom:4,position:"relative",zIndex:2,transition:"color 0.4s"}}>{hint}</p>
-    <canvas ref={canvasRef} width={W} height={H} style={{position:"relative",zIndex:2,touchAction:"none",display:"block"}}/>
-    <button onClick={()=>{if(!ready||loading)return;if(importStep==="draw"&&importDataRef.current){handleImportDraw(stateRef.current.sequence);}else{doAuth(stateRef.current.sequence);}}} style={{width:160,padding:"14px 0",borderRadius:14,fontSize:12,letterSpacing:"2px",fontFamily:"inherit",border:`0.5px solid ${btnStyle.borderColor}`,cursor:ready&&!loading?"pointer":"default",transition:"all 0.5s",position:"relative",zIndex:2,marginTop:10,textTransform:"lowercase",...btnStyle}}>{loading?"...":"enter"}</button>
-    <button onClick={()=>{const S=stateRef.current;S.sequence=[];S.trailParticles.length=0;nodeStateRef.current.forEach(s=>{s.intensity=0;s.wisps.forEach(w=>{w.life=w.maxLife;});});setReady(false);setBtnStyle({color:"rgba(232,200,154,0.2)",background:"rgba(193,127,74,0.08)",borderColor:"rgba(193,127,74,0.12)"});updateHint([]);}} style={{background:"none",border:"none",fontSize:10,color:"rgba(232,200,154,0.12)",letterSpacing:"1px",cursor:"pointer",fontFamily:"inherit",marginTop:10,position:"relative",zIndex:2,padding:"4px 8px",textTransform:"lowercase"}}>clear</button>
-    <button onClick={()=>setShowImport(true)} style={{background:"none",border:"none",fontSize:10,color:"rgba(232,200,154,0.1)",letterSpacing:"0.5px",cursor:"pointer",fontFamily:"inherit",marginTop:16,position:"relative",zIndex:2,padding:"4px 8px"}}>importing from V1?</button>
-  </div>);
 }
 
 /* ═══════════════════════════════════════════
@@ -1769,9 +1663,9 @@ function RecommenderPage({strains,savedTips,onSaveTip,onDeleteTip}){
    MAIN APP
    ═══════════════════════════════════════════ */
 export default function App(){
-  const AUTH_ENABLED=true;
-  const[authed,setAuthed]=useState(!AUTH_ENABLED);
-  const[token,setToken]=useState(null);
+  const[authed,setAuthed]=useState(false);
+  const[authLoading,setAuthLoading]=useState(true);
+  const[userId,setUserId]=useState(null);
   const[data,setData]=useState({});
   const[synced,setSynced]=useState(true);
   const[page,setPage]=useState("home");
@@ -1812,10 +1706,9 @@ export default function App(){
   const[homeTipIntent,setHomeTipIntent]=useState(null);
 
   // ── Init from Supabase ──
-  const handleAuth=(t,initialData)=>{
-    setToken(t);
-    // migration: V1 used unknownLineage:true + parents:[], V2 uses parents:["unknown lineage"]
-    // also trim any whitespace from parent names
+  const loadData=async(uid)=>{
+    const{data:rows,error}=await supabase.from("cloud_data").select("*").eq("user_id",uid).maybeSingle();
+    const initialData=rows?.data||{};
     const migratedStrains=(initialData.strains||[]).map(s=>({
       ...s,
       parents:s.unknownLineage?["unknown lineage"]:(s.parents||[]).map(p=>p.trim()).filter(Boolean),
@@ -1829,18 +1722,35 @@ export default function App(){
     setSavedComparisons(initialData.savedComparisons||[]);
     setSavedTips(initialData.savedTips||[]);
     setData(initialData);
+    setUserId(uid);
     setAuthed(true);
+    setAuthLoading(false);
   };
+
+  // ── Auth listener — handles session on load + magic link redirect ──
+  useEffect(()=>{
+    // onAuthStateChange fires first when a magic link hash is present in the URL,
+    // so we rely on it as the single source of truth rather than getSession()
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(session?.user){
+        loadData(session.user.id);
+      } else if(event==="SIGNED_OUT"||event==="INITIAL_SESSION"){
+        setAuthLoading(false);
+      }
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
 
   // ── Save to Supabase ──
   const saveToCloud=useCallback(async(newData)=>{
+    if(!userId)return;
     setSynced(false);
-    const ok=await sbFetch(`cloud_data?user_token=eq.${token}`,{method:"PATCH",body:JSON.stringify({data:newData,updated_at:new Date().toISOString()})});
-    setSynced(!!ok);
-  },[token]);
+    const{error}=await supabase.from("cloud_data").upsert({user_id:userId,data:newData,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    setSynced(!error);
+  },[userId]);
 
   useEffect(()=>{
-    if(!authed||!token)return;
+    if(!authed||!userId)return;
     const d={strains,coppedEntries,onHand,mixQueue,reups,finishedReups,savedComparisons,savedTips};
     saveToCloud(d);
   },[strains,coppedEntries,onHand,mixQueue,reups,finishedReups,savedComparisons,savedTips]);
@@ -1995,7 +1905,8 @@ export default function App(){
   const mixCount=strains.reduce((n,s)=>n+s.cops?.reduce((m,c)=>m+(c.mixes?.length||0),0)||0,0);
   const reupCount=reups.length;
 
-  if(!authed&&AUTH_ENABLED)return <AuthScreen onAuth={handleAuth}/>;
+  if(authLoading)return(<div style={{background:"#120D06",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><p style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:"rgba(232,200,154,0.3)",letterSpacing:"1.5px"}}>cLOUD</p></div>);
+  if(!authed)return <MagicLinkScreen/>;
 
   const renderPage=()=>{
     switch(page){
