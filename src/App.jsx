@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
    SUPABASE
    ═══════════════════════════════════════════ */
 const SB_URL="https://pukzhmhevjbfwvhjzppr.supabase.co";
-const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a3pobWhldmpiZnd2aGp6cHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjUzNTYsImV4cCI6MjA5MzM0MTM1Nn0.-Jl1tv-xeOTwv6cd-OgF-ovooLfYyzoaA2c7Seax3Zo";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a3pobWhldmpiZnd2aGp6cHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MTgyNzIsImV4cCI6MjA2MDQ5NDI3Mn0.kV5xLqXMSzwLGxQmFM_Ffi2XMoPszNSiT4FYfJFaVkc";
 const sbFetch=async(path,opts={})=>{const res=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,"Content-Type":"application/json",Prefer:opts.method==="PATCH"?"return=minimal":"return=representation",...opts.headers}});if(!res.ok)return null;if(opts.method==="PATCH")return true;return res.json();};
 const hashPin=async pin=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");};
 
@@ -182,7 +182,7 @@ function AuthScreen({onAuth}){
 
   const[showImport,setShowImport]=useState(false);
   const[importPin,setImportPin]=useState("");
-  const[importStep,setImportStep]=useState("pin"); // "pin" | "draw" | "done"
+  const[importStep,setImportStep]=useState("pin");
   const[importError,setImportError]=useState("");
   const[importLoading,setImportLoading]=useState(false);
   const importDataRef=useRef(null);
@@ -328,7 +328,7 @@ function HowToModal({onClose}){
   ];
   return(<div style={{position:"fixed",inset:0,zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center",maxWidth:480,margin:"0 auto",left:"50%",transform:"translateX(-50%)"}}>
     <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(44,36,32,0.4)"}}/>
-    <div style={{position:"relative",background:"#FAF6F0",borderRadius:"20px 20px 0 0",padding:"28px 24px 48px",width:"100%",maxHeight:"80vh",overflowY:"auto",boxShadow:"0 -4px 32px rgba(44,36,32,0.12)"}}>
+    <div style={{position:"relative",background:"#FAF6F0",borderRadius:"20px 20px 0 0",padding:"28px 24px 48px",width:"100%",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 -4px 32px rgba(44,36,32,0.12)"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
         <div>
           <p style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:400,color:"#2C2420",margin:"0 0 3px"}}>how cLOUD works</p>
@@ -347,7 +347,7 @@ function HowToModal({onClose}){
           </div>
         </div>)}
       </div>
-      <p style={{fontSize:11,color:"#B8A898",marginTop:24,paddingTop:16,borderTop:"0.5px solid #E0D8CE",lineHeight:1.5}}>your V1 archive lives at <span style={{color:"#9A8A78"}}>leonnariley18-ui.github.io/cloud/[url]</span> — everything you logged before June 2026.</p>
+      <p style={{fontSize:11,color:"#B8A898",marginTop:24,paddingTop:16,borderTop:"0.5px solid #E0D8CE",lineHeight:1.5}}>your V1 archive lives at <a href="https://leonnariley18-ui.github.io/the-cloud/v1/" target="_blank" rel="noopener noreferrer" style={{color:"#9A8A78",textDecoration:"underline",textDecorationColor:"rgba(154,138,120,0.4)"}}>leonnariley18-ui.github.io/the-cloud/v1/</a> — everything you logged before June 2026.</p>
     </div>
   </div>);
 }
@@ -677,6 +677,8 @@ function LibraryPage({strains,legacyStrains,onOpenDetail}){
   const[ratingFilter,setRatingFilter]=useState(0);
   const[libTab,setLibTab]=useState("strains");
   const[starredOnly,setStarredOnly]=useState(false);
+  const[collapsedMonths,setCollapsedMonths]=useState({});
+  const toggleMonth=m=>setCollapsedMonths(prev=>({...prev,[m]:!prev[m]}));
   const isNeverAgain=s=>s.cops.some(c=>c.session?.copAgain==="Never again");
   const getLatestCop=s=>s.cops[s.cops.length-1];
   const getLatestSession=s=>{const c=getLatestCop(s);return c?.session||null;};
@@ -712,7 +714,10 @@ function LibraryPage({strains,legacyStrains,onOpenDetail}){
     <p style={{fontSize:11,color:D.muted,marginBottom:20}}>{strains.filter(s=>!s.legacy).length} strains · {uniqueMixes.length} mix{uniqueMixes.length!==1?"es":""} · {legacyStrains.length} legacy</p>
 
     {/* Tabs */}
-    <div style={{display:"flex",gap:6,marginBottom:20}}>{["strains","mixes","legacy"].map(t=><button key={t} onClick={()=>setLibTab(t)} style={{padding:"8px 18px",borderRadius:20,fontSize:12,fontFamily:"inherit",cursor:"pointer",fontWeight:libTab===t?500:400,background:libTab===t?(t==="mixes"?"#8B6D8B":t==="legacy"?D.amber:"#E8E0D4"):"transparent",color:libTab===t?(t==="legacy"?"#1A1410":"#1A1410"):D.muted,border:libTab===t?"none":`0.5px solid ${D.border}`}}>{t}</button>)}</div>
+    <div style={{display:"flex",gap:6,marginBottom:20,alignItems:"center"}}>
+      {["strains","mixes","legacy"].map(t=><button key={t} onClick={()=>setLibTab(t)} style={{padding:"8px 18px",borderRadius:20,fontSize:12,fontFamily:"inherit",cursor:"pointer",fontWeight:libTab===t?500:400,background:libTab===t?(t==="mixes"?"#8B6D8B":t==="legacy"?D.amber:"#E8E0D4"):"transparent",color:libTab===t?(t==="legacy"?"#1A1410":"#1A1410"):D.muted,border:libTab===t?"none":`0.5px solid ${D.border}`}}>{t}</button>)}
+      <a href="https://leonnariley18-ui.github.io/the-cloud/v1/" target="_blank" rel="noopener noreferrer" style={{marginLeft:"auto",padding:"8px 14px",borderRadius:20,fontSize:11,fontFamily:"inherit",cursor:"pointer",background:"transparent",color:D.muted,border:`0.5px solid ${D.border}`,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>V1 ↗</a>
+    </div>
 
     {/* Search + Filters */}
     {libTab==="strains"&&<>
@@ -727,8 +732,11 @@ function LibraryPage({strains,legacyStrains,onOpenDetail}){
     {libTab==="strains"&&<div>
       {monthOrder.length===0&&<p style={{fontSize:13,color:D.muted,fontStyle:"italic"}}>no strains logged yet</p>}
       {monthOrder.map(month=><div key={month} style={{marginBottom:28}}>
-        <p style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:400,color:D.amber,margin:"0 0 14px",borderBottom:`0.5px solid ${D.border}`,paddingBottom:8}}>{month}</p>
-        {monthGroups[month].map(s=>{const lc=getLatestCop(s);const ls=lc?.session;const locked=isNeverAgain(s);
+        <div onClick={()=>toggleMonth(month)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:collapsedMonths[month]?0:14,borderBottom:`0.5px solid ${D.border}`,paddingBottom:8}}>
+          <p style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:400,color:D.amber,margin:0}}>{month}</p>
+          <span style={{fontSize:11,color:D.muted,userSelect:"none"}}>{collapsedMonths[month]?`${monthGroups[month].length} strain${monthGroups[month].length!==1?"s":""}  ▸`:"▾"}</span>
+        </div>
+        {!collapsedMonths[month]&&monthGroups[month].map(s=>{const lc=getLatestCop(s);const ls=lc?.session;const locked=isNeverAgain(s);
           return(<div key={s.id} onClick={()=>onOpenDetail(s)} style={{display:"flex",gap:12,marginBottom:10,cursor:"pointer",padding:"12px 14px",borderRadius:12,background:D.card,border:`0.5px solid ${D.border}`}}>
             {/* spine dot */}
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:4}}>
@@ -757,8 +765,6 @@ function LibraryPage({strains,legacyStrains,onOpenDetail}){
           </div>);})}
       </div>)}
     </div>}
-
-    {/* ── MIXES TAB ── */}
     {libTab==="mixes"&&<div>
       {uniqueMixes.length===0&&<p style={{fontSize:13,color:D.muted,fontStyle:"italic"}}>no mixes logged yet</p>}
       {uniqueMixes.map(m=><div key={m.id} style={{background:"rgba(139,109,139,0.08)",borderRadius:12,padding:14,marginBottom:8,border:"0.5px solid rgba(139,109,139,0.15)"}}>
@@ -892,7 +898,7 @@ function StrainDetailPage({strain,copIdx,tab,setTab,onBack,onStar,onUpdateRating
           <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:s.setting==="outdoor"?"rgba(91,138,114,0.2)":s.bedtime?"rgba(44,44,74,0.5)":typeTheme.cardBg,color:s.setting==="outdoor"?"#6B8F5A":s.bedtime?"#C9B8F0":typeTheme.muted}}>{s.setting==="outdoor"?"outdoor":s.bedtime?"bedtime":"indoor"}</span>
           {s.smokesLike&&s.smokesLike!==cop?.type&&<span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(193,127,74,0.15)",color:"#C17F4A"}}>smokes {s.smokesLike.toLowerCase()}</span>}
         </div>
-        {cop?.firstNotes&&<div style={{marginTop:8}}><p style={{fontSize:10,color:typeTheme.muted,margin:"0 0 2px"}}>first impressions{cop?.date?` · ${cop.date}`:""}</p><p style={{fontSize:12,color:typeTheme.text,margin:0,lineHeight:1.4,opacity:0.8}}>{cop.firstNotes}</p></div>}
+        {(()=>{const fi=cop?.firstNotes||(cop?.notes?.length>0?cop.notes[0].text:null);if(!fi)return null;const fiDate=cop?.firstNotes?cop?.date:cop?.notes?.[0]?.date||cop?.date;return(<div style={{marginTop:8}}><p style={{fontSize:10,color:typeTheme.muted,margin:"0 0 2px"}}>first impressions{fiDate?` · ${fiDate}`:""}</p><p style={{fontSize:12,color:typeTheme.text,margin:0,lineHeight:1.4,opacity:0.8}}>{fi}</p></div>);})()}
       </div>
 
       {/* Vibes + taste */}
@@ -945,16 +951,19 @@ function StrainDetailPage({strain,copIdx,tab,setTab,onBack,onStar,onUpdateRating
         <div style={{display:"flex",gap:8}}><button onClick={()=>setMixMode(null)} style={{flex:1,padding:10,borderRadius:8,fontSize:12,background:"transparent",color:typeTheme.muted,border:`0.5px solid ${typeTheme.cardBorder}`,cursor:"pointer",fontFamily:"inherit"}}>cancel</button><button onClick={onSaveNote} style={{flex:1,padding:10,borderRadius:8,fontSize:12,fontWeight:500,background:typeTheme.accent,color:cop?.type==="Sativa"?"#FBF4E4":"#E8E0D4",border:"none",cursor:"pointer",fontFamily:"inherit"}}>save note</button></div>
       </div>}
       {(cop?.notes||[]).length===0&&!mixMode&&<p style={{fontSize:13,color:typeTheme.muted,fontStyle:"italic"}}>no notes yet</p>}
-      {(cop?.notes||[]).map(n=><div key={n.id} style={{background:typeTheme.cardBg,borderRadius:10,padding:12,marginBottom:6,border:`0.5px solid ${typeTheme.cardBorder}`,borderLeft:`3px solid ${typeTheme.accent}`}}>
+      {(cop?.notes||[]).map((n,ni)=>{const isFirstImpression=!cop?.firstNotes&&ni===0;return(<div key={n.id} style={{background:typeTheme.cardBg,borderRadius:10,padding:12,marginBottom:6,border:`0.5px solid ${typeTheme.cardBorder}`,borderLeft:`3px solid ${isFirstImpression?typeTheme.muted:typeTheme.accent}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-          <span style={{fontSize:10,color:typeTheme.muted}}>{n.date}</span>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:10,color:typeTheme.muted}}>{n.date}</span>
+            {isFirstImpression&&<span style={{fontSize:9,color:typeTheme.muted,opacity:0.6,fontStyle:"italic"}}>first impressions</span>}
+          </div>
           {!locked&&cop?.status==="on-hand"&&<div style={{display:"flex",gap:6}}>
             <button onClick={()=>{setEditingItem(n.id);setEditText(n.text);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:typeTheme.muted,fontFamily:"inherit"}}>edit</button>
             <button onClick={()=>deleteFromCop("notes",n.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:"#C15A4A",fontFamily:"inherit"}}>{confirmDeleteItem==="notes-"+n.id?"confirm?":"delete"}</button>
           </div>}
         </div>
         {editingItem===n.id?<div><textarea value={editText} onChange={e=>setEditText(e.target.value)} rows={2} style={{width:"100%",boxSizing:"border-box",background:"transparent",borderRadius:6,padding:"8px 10px",fontSize:12,color:typeTheme.text,border:`0.5px solid ${typeTheme.cardBorder}`,fontFamily:"inherit",outline:"none",resize:"vertical",marginBottom:6}}/><div style={{display:"flex",gap:6}}><button onClick={()=>{setEditingItem(null);setEditText("");}} style={{fontSize:10,color:typeTheme.muted,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>cancel</button><button onClick={()=>editNoteText(n.id,editText)} style={{fontSize:10,color:typeTheme.accent,fontWeight:500,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>save</button></div></div>:<p style={{fontSize:12,color:typeTheme.text,margin:"0",lineHeight:1.4}}>{n.text}</p>}
-      </div>)}
+      </div>);})}
     </div>}
 
     {/* ── EXPERIENCES TAB ── */}
@@ -1383,7 +1392,7 @@ function ComparePage({strains,savedComparisons,onSaveComparison,onDeleteComparis
     </div>
 
     {/* Draft pick list */}
-    <div style={{borderRadius:10,overflow:"hidden",border:`0.5px solid ${D.border}`,marginBottom:24}}>
+    <div style={{borderRadius:10,overflow:"hidden",border:`0.5px solid ${D.border}`,marginBottom:24,maxHeight:260,overflowY:"auto"}}>
       {eligible.map(s=>{const isA=pickA===s.id;const isB=pickB===s.id;const lc=s.cops[s.cops.length-1];const ls=lc?.session;
         return(<div key={s.id} style={{display:"flex",alignItems:"center",padding:"8px 12px",background:isA?`${cA}08`:isB?`${cB}08`:D.card,borderBottom:`0.5px solid ${D.border}`}}>
           <div style={{width:4,height:20,borderRadius:2,background:typeColor(lc?.type),marginRight:10,flexShrink:0}}/>
